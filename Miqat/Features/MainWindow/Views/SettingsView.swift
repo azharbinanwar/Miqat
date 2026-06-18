@@ -230,9 +230,6 @@ enum HighLatRule: String, CaseIterable {
 // MARK: - Settings View
 
 struct SettingsView: View {
-    // Location
-    @State private var locationCity    = "London, UK"
-
     // Prayer calculation
     @State private var calcMethod: CalcMethod      = .mwl
     @State private var madhab: Madhab               = .hanafi
@@ -277,7 +274,7 @@ struct SettingsView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    locationCard
+
                     calculationCard
                     menuBarCard
                     appearanceCard
@@ -304,51 +301,6 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 14)
-    }
-
-    // MARK: Location card
-    private var locationCard: some View {
-        settingsCard(title: "Location", icon: "location.fill", iconColor: Color(hex: "#2563EB")) {
-            HStack(spacing: 14) {
-                Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color(hex: "#2563EB"))
-                    .frame(width: 28, height: 28)
-                    .background(Color(hex: "#2563EB").opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(locationCity)
-                        .font(.system(size: 13, weight: .medium))
-                    Text("51.5074° N, 0.1278° W")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Button { } label: {
-                    Label("Auto-detect", systemImage: "location.circle")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(hex: "#2563EB"))
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
-                        .background(Color(hex: "#2563EB").opacity(0.1), in: RoundedRectangle(cornerRadius: 7))
-                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color(hex: "#2563EB").opacity(0.2), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 11)
-
-            Divider().padding(.leading, 58).opacity(0.3)
-
-            SettingsActionRow(
-                icon: "magnifyingglass",
-                iconColor: Color(hex: "#2563EB"),
-                title: "Search location",
-                subtitle: "Enter a city or coordinates manually"
-            )
-        }
     }
 
     // MARK: Calculation card

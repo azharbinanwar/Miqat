@@ -17,12 +17,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         setupPopover()
 
-        if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-            showMainWindow()
-            showWidget()
-        } else {
-            showOnboarding()
-        }
+        // DEBUG: always show onboarding — remove before release
+        showOnboarding()
+//         RELEASE: uncomment below and remove line above
+//         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+//             showMainWindow(); showWidget()
+//         } else { showOnboarding() }
     }
 
     // MARK: - Status Item (menu bar)
@@ -75,13 +75,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let pop = NSPopover()
         pop.behavior = .transient
         pop.animates = true
-
-        let controller = NSHostingController(rootView: PopoverView())
-        // Let the SwiftUI view's intrinsic size drive the popover height
-        controller.view.layoutSubtreeIfNeeded()
-        let size = controller.view.fittingSize
-        pop.contentSize           = NSSize(width: 320, height: size.height)
-        pop.contentViewController = controller
+        pop.contentSize           = NSSize(width: 320, height: 480)
+        pop.contentViewController = NSHostingController(rootView: PopoverView())
         popover = pop
     }
 
@@ -113,9 +108,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Miqat"
         window.titlebarAppearsTransparent = false
         window.center()
+        print("[AppDelegate] creating NSHostingView for MainWindowView")
         window.contentView = NSHostingView(rootView: MainWindowView())
+        print("[AppDelegate] NSHostingView created — making key")
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        print("[AppDelegate] main window shown")
         mainWindowController = NSWindowController(window: window)
     }
 
@@ -152,16 +150,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility            = .hidden
+        window.titlebarAppearsTransparent  = true
+        window.titleVisibility             = .hidden
         window.isMovableByWindowBackground = true
+        window.isReleasedWhenClosed        = false
         window.contentViewController = NSHostingController(
             rootView: OnboardingView {
-                UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-                self.onboardingWindow?.close()
-                self.onboardingWindow = nil
-                self.showMainWindow()
-                self.showWidget()
+                DispatchQueue.main.async {
+                    LocationViewModel.shared.cancelFetch()
+                    UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                    self.onboardingWindow?.animationBehavior = .none
+                    self.onboardingWindow?.close()
+                    // Nil AFTER main window is shown — keeps our strong reference alive
+                    // through the current run loop so the window's autorelease pool
+                    // entry drains before ARC releases it (prevents double-release crash)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.showMainWindow()
+                        self.onboardingWindow = nil
+                        // self.showWidget() — Phase 5
+                    }
+                }
             }
         )
         window.center()

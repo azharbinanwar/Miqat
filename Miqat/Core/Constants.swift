@@ -1,0 +1,9 @@
+import Foundation
+
+enum Keys {
+    enum Defaults {
+        static let locations       = "dev.miqat.locations.v2"
+        static let activeLocationId = "dev.miqat.activeLocationId"
+        static let selectedMadhab  = "dev.miqat.selectedMadhab"
+    }
+}

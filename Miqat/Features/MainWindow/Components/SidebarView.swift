@@ -46,41 +46,38 @@ struct SidebarView: View {
     ]
 
     var body: some View {
-        ZStack {
-            VisualEffect(material: .sidebar, blendingMode: .behindWindow)
+        VStack(alignment: .leading, spacing: 0) {
+            appBrand
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
 
-            VStack(alignment: .leading, spacing: 0) {
-                appBrand
-                    .padding(.horizontal, 16)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
+            Divider().opacity(0.4)
 
-                Divider().opacity(0.4)
-
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(sections, id: \.0.rawValue) { section, items in
-                            sectionHeader(section.rawValue)
-                            ForEach(items, id: \.self) { item in
-                                SidebarRow(item: item, isSelected: selected == item)
-                                    .onTapGesture { withAnimation(.easeInOut(duration: 0.15)) { selected = item } }
-                            }
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(sections, id: \.0.rawValue) { section, items in
+                        sectionHeader(section.rawValue)
+                        ForEach(items, id: \.self) { item in
+                            SidebarRow(item: item, isSelected: selected == item)
+                                .onTapGesture { withAnimation(.easeInOut(duration: 0.15)) { selected = item } }
                         }
                     }
-                    .padding(.top, 8)
-                    .padding(.bottom, 12)
                 }
-
-                Spacer(minLength: 0)
-
-                Divider().opacity(0.4)
-
-                locationBar
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
             }
+
+            Spacer(minLength: 0)
+
+            Divider().opacity(0.4)
+
+            locationBar
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
         }
         .frame(width: 210)
+        .background(Color(NSColor.windowBackgroundColor))
     }
 
     private var appBrand: some View {
@@ -118,9 +115,10 @@ struct SidebarView: View {
             Image(systemName: "location.fill")
                 .font(.system(size: 11))
                 .foregroundStyle(Color(hex: "#0D9488"))
-            Text(MockPrayerData.location)
+            Text(LocationViewModel.shared.activeLocation?.city ?? "No location set")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
     }
 }
