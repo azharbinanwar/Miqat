@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TodayView: View {
-    @Binding var isHanafi: Bool
+    @Binding var madhab: Madhab
 
     var body: some View {
         VStack(spacing: 0) {

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MainWindowView: View {
     @State private var selectedItem: SidebarItem = .today
-    @State private var isHanafi = true
+    @State private var madhab: Madhab = .hanafi
 
     var body: some View {
         HStack(spacing: 0) {
@@ -10,14 +10,24 @@ struct MainWindowView: View {
             Divider()
 
             VStack(spacing: 0) {
-                HeaderBar(isHanafi: $isHanafi)
+                HeaderBar(madhab: $madhab)
                 Divider()
 
                 switch selectedItem {
                 case .today:
-                    TodayView(isHanafi: $isHanafi)
+                    TodayView(madhab: $madhab)
                 case .monthly:
                     MonthlyView()
+                case .tracker:
+                    TrackerView()
+                case .stats:
+                    StatsView()
+                case .notifications:
+                    NotificationsView()
+                case .location:
+                    LocationView()
+                case .settings:
+                    SettingsView()
                 default:
                     placeholderView(selectedItem.rawValue)
                 }
@@ -45,7 +55,7 @@ struct MainWindowView: View {
 // MARK: - Header Bar
 
 struct HeaderBar: View {
-    @Binding var isHanafi: Bool
+    @Binding var madhab: Madhab
 
     var body: some View {
         HStack(alignment: .center) {
@@ -59,8 +69,8 @@ struct HeaderBar: View {
             Spacer()
 
             HStack(spacing: 0) {
-                madhhabButton("Hanafi", selected: isHanafi)  { isHanafi = true }
-                madhhabButton("Shafi",  selected: !isHanafi) { isHanafi = false }
+                madhhabButton("Hanafi",  selected: madhab == .hanafi) { madhab = .hanafi }
+                madhhabButton("Shafi'i", selected: madhab == .shafi)  { madhab = .shafi }
             }
             .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08), lineWidth: 1))

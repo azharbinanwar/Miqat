@@ -1,5 +1,11 @@
 import SwiftUI
 
+// MARK: - Global Madhab constant (used in UI, DB, PrayerEngine)
+enum Madhab: String, CaseIterable, Codable {
+    case hanafi  = "Hanafi"
+    case shafi   = "Shafi'i"
+}
+
 enum Prayer: String, CaseIterable {
     case fajr    = "Fajr"
     case sunrise = "Sunrise"

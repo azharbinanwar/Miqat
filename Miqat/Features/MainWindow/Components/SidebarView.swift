@@ -6,6 +6,7 @@ enum SidebarItem: String, CaseIterable {
     case tracker       = "Tracker"
     case stats         = "Stats"
     case notifications = "Notifications"
+    case location      = "Location"
     case settings      = "Settings"
 
     var icon: String {
@@ -15,15 +16,16 @@ enum SidebarItem: String, CaseIterable {
         case .tracker:       return "checkmark.circle.fill"
         case .stats:         return "chart.bar.fill"
         case .notifications: return "bell.fill"
+        case .location:      return "location.fill"
         case .settings:      return "gearshape.fill"
         }
     }
 
     var section: SidebarSection {
         switch self {
-        case .today, .monthly:       return .main
-        case .tracker, .stats:       return .track
-        case .notifications, .settings: return .more
+        case .today, .monthly:              return .main
+        case .tracker, .stats:              return .track
+        case .notifications, .location, .settings: return .more
         }
     }
 }
@@ -40,7 +42,7 @@ struct SidebarView: View {
     private let sections: [(SidebarSection, [SidebarItem])] = [
         (.main,  [.today, .monthly]),
         (.track, [.tracker, .stats]),
-        (.more,  [.notifications, .settings]),
+        (.more,  [.notifications, .location, .settings]),
     ]
 
     var body: some View {
