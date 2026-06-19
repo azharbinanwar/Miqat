@@ -50,7 +50,7 @@ final class OnboardingViewModel {
             UserDefaults.standard.set(selectedMadhab.rawValue, forKey: Keys.Defaults.selectedMadhab)
         }
         if page == 2 {
-            await NotificationManager.shared.requestPermission()
+            _ = await NotificationManager.shared.requestPermission()
             notifRequested = true
             try? await Task.sleep(for: .milliseconds(400))
         }
@@ -62,26 +62,26 @@ final class OnboardingViewModel {
     var pageGradient: LinearGradient {
         switch page {
         case 0: return LinearGradient(
-            colors: [Color(hex: "#0F172A"), Color(hex: "#1E1B4B"), Color(hex: "#4C1D95")],
+            colors: [AppColor.deepNavy, AppColor.darkNavy, AppColor.purple],
             startPoint: .topLeading, endPoint: .bottomTrailing)
         case 1: return LinearGradient(
-            colors: [Color(hex: "#78350F"), Color(hex: "#D97706")],
+            colors: [AppColor.brown, AppColor.asr],
             startPoint: .topLeading, endPoint: .bottomTrailing)
         case 2: return LinearGradient(
-            colors: [Color(hex: "#14532D"), Color(hex: "#0D9488")],
+            colors: [AppColor.green, AppColor.teal],
             startPoint: .topLeading, endPoint: .bottomTrailing)
         default: return LinearGradient(
-            colors: [Color(hex: "#0F766E"), Color(hex: "#0284C7")],
+            colors: [AppColor.deepTeal, AppColor.skyCyan],
             startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
 
     var ctaTextColor: Color {
         switch page {
-        case 0: return Color(hex: "#4C1D95")
-        case 1: return Color(hex: "#78350F")
-        case 2: return Color(hex: "#14532D")
-        default: return Color(hex: "#0F766E")
+        case 0: return AppColor.purple
+        case 1: return AppColor.brown
+        case 2: return AppColor.green
+        default: return AppColor.deepTeal
         }
     }
 }

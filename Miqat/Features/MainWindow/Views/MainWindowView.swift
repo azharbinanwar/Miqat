@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MainWindowView: View {
     @State private var selectedItem: SidebarItem = .today
-    @State private var madhab: Madhab = .hanafi
+    var settingsVM: SettingsViewModel
 
     var body: some View {
         HStack(spacing: 0) {
@@ -10,12 +10,12 @@ struct MainWindowView: View {
             Divider()
 
             VStack(spacing: 0) {
-                HeaderBar(madhab: $madhab)
+                HeaderBar(vm: settingsVM)
                 Divider()
 
                 switch selectedItem {
                 case .today:
-                    TodayView(madhab: $madhab)
+                    TodayView(vm: settingsVM)
                 case .monthly:
                     MonthlyView()
                 case .tracker:
@@ -27,13 +27,21 @@ struct MainWindowView: View {
                 case .location:
                     LocationView()
                 case .settings:
-                    SettingsView()
-                default:
-                    placeholderView(selectedItem.rawValue)
+                    SettingsView(vm: settingsVM)
                 }
             }
         }
         .frame(minWidth: 780, minHeight: 680)
+        .preferredColorScheme(appThemeColorScheme)
+        .tint(AccentColor.current)
+    }
+
+    private var appThemeColorScheme: ColorScheme? {
+        switch settingsVM.settings.appTheme {
+        case .light:  return .light
+        case .dark:   return .dark
+        case .system: return nil
+        }
     }
 
     private func placeholderView(_ title: String) -> some View {
@@ -55,7 +63,7 @@ struct MainWindowView: View {
 // MARK: - Header Bar
 
 struct HeaderBar: View {
-    @Binding var madhab: Madhab
+    let vm: SettingsViewModel
 
     var body: some View {
         HStack(alignment: .center) {
@@ -69,8 +77,8 @@ struct HeaderBar: View {
             Spacer()
 
             HStack(spacing: 0) {
-                madhhabButton("Hanafi",  selected: madhab == .hanafi) { madhab = .hanafi }
-                madhhabButton("Shafi'i", selected: madhab == .shafi)  { madhab = .shafi }
+                madhhabButton("Hanafi",  selected: vm.settings.madhab == .hanafi) { vm.update { $0.madhab = .hanafi } }
+                madhhabButton("Shafi'i", selected: vm.settings.madhab == .shafi)  { vm.update { $0.madhab = .shafi  } }
             }
             .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08), lineWidth: 1))
@@ -86,7 +94,7 @@ struct HeaderBar: View {
                 .foregroundStyle(selected ? .white : .secondary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
-                .background(selected ? Color(hex: "#0D9488") : Color.clear,
+                .background(selected ? AppColor.teal : Color.clear,
                             in: RoundedRectangle(cornerRadius: 7))
                 .animation(.spring(duration: 0.2), value: selected)
         }
@@ -95,6 +103,6 @@ struct HeaderBar: View {
 }
 
 #Preview {
-    MainWindowView()
+    MainWindowView(settingsVM: SettingsViewModel())
         .preferredColorScheme(.dark)
 }

@@ -67,23 +67,23 @@ struct PrayerCardView: View {
 
     private var statusColor: Color {
         switch entry.status {
-        case .prayed:   return Color(hex: "#0D9488")
-        case .passed:   return Color(hex: "#0D9488")
-        case .current:  return Color(hex: "#0D9488")
+        case .prayed:   return AppColor.teal
+        case .passed:   return AppColor.teal
+        case .current:  return AppColor.teal
         case .upcoming: return .secondary
-        case .alert:    return Color(hex: "#DC2626")
+        case .alert:    return AppColor.alert
         }
     }
 
     private var timeColor: Color {
-        if entry.isAlert { return Color(hex: "#DC2626") }
-        if entry.isCurrent { return Color(hex: "#0D9488") }
+        if entry.isAlert { return AppColor.alert }
+        if entry.isCurrent { return AppColor.teal }
         return .primary
     }
 
     private var borderColor: Color {
-        if entry.isAlert   { return Color(hex: "#DC2626").opacity(0.6) }
-        if entry.isCurrent { return Color(hex: "#0D9488").opacity(0.6) }
+        if entry.isAlert   { return AppColor.alert.opacity(0.6) }
+        if entry.isCurrent { return AppColor.teal.opacity(0.6) }
         return Color.primary.opacity(0.08)
     }
 
@@ -91,10 +91,10 @@ struct PrayerCardView: View {
     private var cardBackground: some View {
         if entry.isCurrent {
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(hex: "#0D9488").opacity(0.08))
+                .fill(AppColor.teal.opacity(0.08))
         } else if entry.isAlert {
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(hex: "#DC2626").opacity(0.06))
+                .fill(AppColor.alert.opacity(0.06))
         } else {
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(NSColor.controlBackgroundColor))

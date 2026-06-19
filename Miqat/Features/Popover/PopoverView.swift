@@ -38,8 +38,8 @@ struct PopoverPrayerRow: View {
 
     private var countdownColor: Color {
         let mins = minutesFromCountdown(countdown)
-        if mins <= 20 { return Color(hex: "#FCA5A5") }
-        if mins <= 30 { return Color(hex: "#FCD34D") }
+        if mins <= 20 { return AppColor.softRed }
+        if mins <= 30 { return AppColor.softAmber }
         return .white
     }
 
@@ -73,15 +73,19 @@ struct PopoverPrayerRow: View {
 
     private func minutesFromCountdown(_ s: String) -> Int {
         let parts = s.split(separator: ":").compactMap { Int($0) }
-        guard parts.count == 3 else { return 999 }
-        return parts[0] * 60 + parts[1]
+        switch parts.count {
+        case 3: return parts[0] * 60 + parts[1]
+        case 2: return parts[0]
+        default: return 999
+        }
     }
 }
 
 // MARK: - Popover View
 
 struct PopoverView: View {
-    @State private var madhab: Madhab  = .hanafi
+    let prayerVM: PrayerTimeViewModel
+    let settingsVM: SettingsViewModel
     @State private var prayed          = false
     @State private var showLocations = false
     @State private var vm            = LocationViewModel.shared
@@ -104,6 +108,16 @@ struct PopoverView: View {
         .frame(width: 320)
         .fixedSize(horizontal: true, vertical: true)
         .animation(.spring(duration: 0.22), value: showLocations)
+        .preferredColorScheme(appThemeColorScheme)
+        .tint(AccentColor.current)
+    }
+
+    private var appThemeColorScheme: ColorScheme? {
+        switch settingsVM.settings.appTheme {
+        case .light:  return .light
+        case .dark:   return .dark
+        case .system: return nil
+        }
     }
 
     // MARK: Header
@@ -138,12 +152,12 @@ struct PopoverView: View {
     // MARK: Countdown hero
     private var countdownHero: some View {
         VStack(spacing: 4) {
-            Text("NEXT · \(MockPrayerData.nextPrayer.uppercased())")
+            Text("NEXT · \(prayerVM.nextPrayerEntry?.referenceTime.rawValue.uppercased() ?? "--")")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(1.5)
 
-            Text(MockPrayerData.countdown)
+            Text(prayerVM.countdownText)
                 .font(.system(size: 38, weight: .heavy, design: .monospaced))
                 .foregroundStyle(heroCountdownColor)
 
@@ -170,8 +184,8 @@ struct PopoverView: View {
     // MARK: Prayer list
     private var prayerList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(MockPrayerData.entries.enumerated()), id: \.element.id) { index, entry in
-                PopoverPrayerRow(entry: entry, countdown: MockPrayerData.countdown)
+            ForEach(Array(prayerVM.entries.enumerated()), id: \.element.id) { index, entry in
+                PopoverPrayerRow(entry: entry, countdown: prayerVM.countdownText)
                 if index < MockPrayerData.entries.count - 1 {
                     Divider().padding(.leading, 46).opacity(0.08)
                 }
@@ -185,8 +199,8 @@ struct PopoverView: View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
                 HStack(spacing: 0) {
-                    footerPill(Madhab.hanafi.rawValue, selected: madhab == .hanafi) { madhab = .hanafi }
-                    footerPill(Madhab.shafi.rawValue,  selected: madhab == .shafi)  { madhab = .shafi  }
+                    footerPill(Madhab.hanafi.rawValue, selected: settingsVM.settings.madhab == .hanafi) { settingsVM.update { $0.madhab = .hanafi } }
+                    footerPill(Madhab.shafi.rawValue,  selected: settingsVM.settings.madhab == .shafi)  { settingsVM.update { $0.madhab = .shafi  } }
                 }
                 .background(.white.opacity(0.1), in: Capsule())
 
@@ -247,7 +261,7 @@ struct PopoverView: View {
                     HStack(spacing: 10) {
                         Image(systemName: vm.activeLocationId == loc.id ? "location.fill" : "location")
                             .font(.system(size: 11))
-                            .foregroundStyle(vm.activeLocationId == loc.id ? Color(hex: "#0D9488") : .white.opacity(0.5))
+                            .foregroundStyle(vm.activeLocationId == loc.id ? AppColor.teal : .white.opacity(0.5))
                             .frame(width: 16)
                         Text(loc.city)
                             .font(.system(size: 12, weight: vm.activeLocationId == loc.id ? .semibold : .regular))
@@ -256,7 +270,7 @@ struct PopoverView: View {
                         if vm.activeLocationId == loc.id {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Color(hex: "#0D9488"))
+                                .foregroundStyle(AppColor.teal)
                         }
                     }
                     .padding(.horizontal, 10)
@@ -273,6 +287,15 @@ struct PopoverView: View {
         .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
     }
 
+    private func popoverMinutesFromCountdown(_ s: String) -> Int {
+        let parts = s.split(separator: ":").compactMap { Int($0) }
+        switch parts.count {
+        case 3: return parts[0] * 60 + parts[1]
+        case 2: return parts[0]
+        default: return 999
+        }
+    }
+
     private func footerPill(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
@@ -287,34 +310,32 @@ struct PopoverView: View {
 
     // MARK: Colours
     private var heroCountdownColor: Color {
-        let parts = MockPrayerData.countdown.split(separator: ":").compactMap { Int($0) }
-        guard parts.count == 3 else { return .white }
-        let mins = parts[0] * 60 + parts[1]
-        if mins <= 20 { return Color(hex: "#FCA5A5") }
-        if mins <= 30 { return Color(hex: "#FCD34D") }
+        let mins = popoverMinutesFromCountdown(prayerVM.countdownText)
+        if mins <= 20 { return AppColor.softRed }
+        if mins <= 30 { return AppColor.softAmber }
         return .white
     }
 
     private var prayerAccentColor: Color {
         switch currentHour {
-        case 3..<6:   return Color(hex: "#7C3AED")
-        case 6..<8:   return Color(hex: "#D97706")
-        case 8..<13:  return Color(hex: "#0D9488")
-        case 13..<17: return Color(hex: "#D97706")
-        case 17..<20: return Color(hex: "#9333EA")
-        default:      return Color(hex: "#4F46E5")
+        case 3..<6:   return AppColor.accentPurple
+        case 6..<8:   return AppColor.asr
+        case 8..<13:  return AppColor.teal
+        case 13..<17: return AppColor.asr
+        case 17..<20: return AppColor.maghrib
+        default:      return AppColor.isha
         }
     }
 
     private var timeGradient: LinearGradient {
         let colors: [Color]
         switch currentHour {
-        case 3..<6:   colors = [Color(hex: "#1E1B4B"), Color(hex: "#4C1D95")]
-        case 6..<8:   colors = [Color(hex: "#92400E"), Color(hex: "#F59E0B")]
-        case 8..<13:  colors = [Color(hex: "#0F766E"), Color(hex: "#06B6D4")]
-        case 13..<17: colors = [Color(hex: "#92400E"), Color(hex: "#D97706")]
-        case 17..<20: colors = [Color(hex: "#7C2D12"), Color(hex: "#9333EA")]
-        default:      colors = [Color(hex: "#0F172A"), Color(hex: "#1E1B4B")]
+        case 3..<6:   colors = [AppColor.darkNavy, AppColor.purple]
+        case 6..<8:   colors = [AppColor.burntOrange, AppColor.amber]
+        case 8..<13:  colors = [AppColor.deepTeal, AppColor.dhuhr]
+        case 13..<17: colors = [AppColor.burntOrange, AppColor.asr]
+        case 17..<20: colors = [AppColor.deepRed, AppColor.maghrib]
+        default:      colors = [AppColor.deepNavy, AppColor.darkNavy]
         }
         return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
     }

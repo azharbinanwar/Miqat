@@ -164,6 +164,7 @@ struct AdjustmentRow: View {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(value > range.lowerBound ? .primary : .tertiary)
                         .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 
@@ -179,6 +180,7 @@ struct AdjustmentRow: View {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(value < range.upperBound ? .primary : .tertiary)
                         .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -203,47 +205,24 @@ struct AdjustmentRow: View {
     }
 
     private var valueColor: Color {
-        if !showSign { return Color(hex: "#0D9488") }
+        if !showSign { return AppColor.teal }
         if value == 0 { return .secondary }
-        return value > 0 ? Color(hex: "#0D9488") : Color(hex: "#DC2626")
+        return value > 0 ? AppColor.teal : AppColor.alert
     }
 }
 
 // MARK: - Settings View
 
 struct SettingsView: View {
-    // Prayer calculation
-    @State private var calcMethod: CalculationMethod = .mwl
-    @State private var madhab: Madhab               = .hanafi
-    @State private var highLatRule: HighLatRule     = .middleNight
-    @State private var showMethodDialog             = false
+    let vm: SettingsViewModel
+    @State private var previewVM = PrayerTimeViewModel()
 
-    // Time adjustments (minutes offset per prayer)
-    @State private var fajrAdj    = 0
-    @State private var shuruqAdj  = 0
-    @State private var dhuhrAdj   = 0
-    @State private var asrAdj     = 0
-    @State private var maghribAdj = 0
-    @State private var ishaAdj    = 0
-    @State private var hijriAdj   = 0
+    // Prayer calculation — read from global VM
+    @State private var showMethodDialog = false
 
-    // Menu bar
-    @State private var menuShowPrayerName   = true
-    @State private var menuShowIcon         = true
-    @State private var menuDisplay: MenuBarDisplay = .countdown
-    @State private var orangeThreshold      = 30
-    @State private var redThreshold         = 20
+    // Time adjustments — read from global VM
 
-    // Appearance
-    @State private var theme: AppTheme              = .system
-    @State private var accentIndex: Int = {
-        max(0, min(AccentColor.options.count - 1, UserDefaults.standard.integer(forKey: Keys.Defaults.accentColorIndex)))
-    }()
-
-    // Startup
-    @State private var launchAtLogin               = true
-    @State private var showWidgetOnLaunch          = true
-    @State private var openWindowOnLaunch          = false
+    // Menu bar, appearance, startup — all read from global VM
 
     var body: some View {
         VStack(spacing: 0) {
@@ -263,8 +242,10 @@ struct SettingsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { loadPreview() }
+        .onReceive(NotificationCenter.default.publisher(for: .settingsDidChange)) { _ in loadPreview() }
         .sheet(isPresented: $showMethodDialog) {
-            MethodPickerDialog(selection: $calcMethod) { _ in }
+            MethodPickerDialog(selection: vm.binding(for: \.calculationMethod)) { _ in }
         }
     }
 
@@ -286,13 +267,13 @@ struct SettingsView: View {
 
     // MARK: Calculation card
     private var calculationCard: some View {
-        settingsCard(title: "Prayer Calculation", icon: "moon.stars.fill", iconColor: Color(hex: "#7C3AED")) {
+        settingsCard(title: "Prayer Calculation", icon: "moon.stars.fill", iconColor: AppColor.accentPurple) {
             SettingsActionRow(
                 icon: "function",
-                iconColor: Color(hex: "#7C3AED"),
+                iconColor: AppColor.accentPurple,
                 title: "Method",
                 subtitle: "Calculation method for prayer times",
-                value: calcMethod.displayName
+                value: vm.settings.calculationMethod.displayName
             ) {
                 showMethodDialog = true
             }
@@ -301,18 +282,18 @@ struct SettingsView: View {
 
             SettingsSegmentRow(
                 icon: "person.fill",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "Madhab",
-                selection: $madhab
+                selection: vm.binding(for: \.madhab)
             )
 
             Divider().padding(.leading, 58).opacity(0.3)
 
             SettingsSegmentRow(
                 icon: "globe",
-                iconColor: Color(hex: "#7C3AED"),
+                iconColor: AppColor.accentPurple,
                 title: "High Latitude",
-                selection: $highLatRule
+                selection: vm.binding(for: \.highLatRule)
             )
 
             // Manual adjustments section
@@ -321,7 +302,7 @@ struct SettingsView: View {
             HStack {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color(hex: "#7C3AED"))
+                    .foregroundStyle(AppColor.accentPurple)
                 Text("Manual Time Adjustments")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -334,56 +315,64 @@ struct SettingsView: View {
             .padding(.top, 10)
             .padding(.bottom, 2)
 
-            AdjustmentRow(label: "Fajr",    icon: Prayer.fajr.icon,     iconColor: Prayer.fajr.color,   value: $fajrAdj)
+            AdjustmentRow(label: "Fajr",    icon: Prayer.fajr.icon,     iconColor: Prayer.fajr.color,   value: vm.binding(for: \.fajrAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: ReferenceTime.sunrise.label, icon: ReferenceTime.sunrise.icon, iconColor: ReferenceTime.sunrise.color, value: $shuruqAdj)
+            AdjustmentRow(label: ReferenceTime.sunrise.label, icon: ReferenceTime.sunrise.icon, iconColor: ReferenceTime.sunrise.color, value: vm.binding(for: \.sunriseAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Dhuhr",   icon: Prayer.dhuhr.icon,    iconColor: Prayer.dhuhr.color, value: $dhuhrAdj)
+            AdjustmentRow(label: "Dhuhr",   icon: Prayer.dhuhr.icon,    iconColor: Prayer.dhuhr.color, value: vm.binding(for: \.dhuhrAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Asr",     icon: Prayer.asr.icon,      iconColor: Prayer.asr.color,   value: $asrAdj)
+            AdjustmentRow(label: "Asr",     icon: Prayer.asr.icon,      iconColor: Prayer.asr.color,   value: vm.binding(for: \.asrAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Maghrib", icon: Prayer.maghrib.icon, iconColor: Prayer.maghrib.color, value: $maghribAdj)
+            AdjustmentRow(label: "Maghrib", icon: Prayer.maghrib.icon, iconColor: Prayer.maghrib.color, value: vm.binding(for: \.maghribAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Isha",    icon: Prayer.isha.icon,     iconColor: Prayer.isha.color,  value: $ishaAdj)
+            AdjustmentRow(label: "Isha",    icon: Prayer.isha.icon,     iconColor: Prayer.isha.color,  value: vm.binding(for: \.ishaAdjustment))
 
             Divider().padding(.horizontal, 16).opacity(0.4)
 
-            AdjustmentRow(label: "Hijri date", icon: "calendar",     iconColor: Color(hex: "#0D9488"),
-                          value: $hijriAdj, range: -3...3)
+            AdjustmentRow(label: "Hijri date", icon: "calendar",     iconColor: AppColor.teal,
+                          value: vm.binding(for: \.hijriAdjustment), range: -3...3)
                 .padding(.bottom, 2)
         }
     }
 
     // MARK: Menu Bar card
     private var menuBarCard: some View {
-        settingsCard(title: "Menu Bar", icon: "menubar.rectangle", iconColor: Color(hex: "#0D9488")) {
+        settingsCard(title: "Menu Bar", icon: "menubar.rectangle", iconColor: AppColor.teal) {
 
             // What to show in title
             SettingsSegmentRow(
                 icon: "timer",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "Display",
-                selection: $menuDisplay
+                selection: vm.binding(for: \.menuDisplay)
             )
 
             Divider().padding(.leading, 58).opacity(0.3)
 
             SettingsToggleRow(
                 icon: "textformat",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "Show prayer name",
                 subtitle: "e.g.  Asr  42:18",
-                isOn: $menuShowPrayerName
+                isOn: vm.binding(for: \.menuShowPrayerName)
             )
 
             Divider().padding(.leading, 58).opacity(0.3)
 
             SettingsToggleRow(
                 icon: "app.fill",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "Show app icon",
                 subtitle: "Moon icon next to the text",
-                isOn: $menuShowIcon
+                isOn: vm.binding(for: \.menuShowIcon)
+            )
+
+            SettingsToggleRow(
+                icon: "number",
+                iconColor: AppColor.teal,
+                title: "Show seconds",
+                subtitle: "42:18 vs 42:18:00 in countdown",
+                isOn: vm.binding(for: \.menuShowSeconds)
             )
 
             Divider().padding(.horizontal, 16).opacity(0.4)
@@ -392,16 +381,16 @@ struct SettingsView: View {
             HStack {
                 Spacer()
                 HStack(spacing: 6) {
-                    if menuShowIcon {
+                    if vm.settings.menuShowIcon {
                         Image(systemName: "moon.stars.fill")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
-                    if menuShowPrayerName {
-                        Text(menuDisplay == .countdown ? "Asr  42:18" : "Asr  4:42 PM")
+                    if vm.settings.menuShowPrayerName {
+                        Text(vm.settings.menuDisplay == .countdown ? previewCountdownText : previewTimeText)
                             .font(.system(size: 12, weight: .medium, design: .monospaced))
                     } else {
-                        Text(menuDisplay == .countdown ? "42:18" : "4:42 PM")
+                        Text(vm.settings.menuDisplay == .countdown ? previewCountdownOnly : previewTimeOnly)
                             .font(.system(size: 12, weight: .medium, design: .monospaced))
                     }
                 }
@@ -413,13 +402,11 @@ struct SettingsView: View {
             }
             .padding(.vertical, 12)
 
-            Divider().padding(.horizontal, 16).opacity(0.4)
-
             // Warning colour thresholds
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color(hex: "#F59E0B"))
+                    .foregroundStyle(AppColor.amber)
                 Text("Colour Warnings")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -435,8 +422,8 @@ struct SettingsView: View {
             AdjustmentRow(
                 label: "Orange alert",
                 icon: "circle.fill",
-                iconColor: Color(hex: "#F59E0B"),
-                value: $orangeThreshold,
+                iconColor: AppColor.amber,
+                value: vm.binding(for: \.orangeThreshold),
                 range: 10...60,
                 step: 5,
                 showSign: false
@@ -447,8 +434,8 @@ struct SettingsView: View {
             AdjustmentRow(
                 label: "Red alert",
                 icon: "circle.fill",
-                iconColor: Color(hex: "#DC2626"),
-                value: $redThreshold,
+                iconColor: AppColor.alert,
+                value: vm.binding(for: \.redThreshold),
                 range: 5...30,
                 step: 5,
                 showSign: false
@@ -459,12 +446,12 @@ struct SettingsView: View {
 
     // MARK: Appearance card
     private var appearanceCard: some View {
-        settingsCard(title: "Appearance", icon: "paintbrush.fill", iconColor: Color(hex: "#F59E0B")) {
+        settingsCard(title: "Appearance", icon: "paintbrush.fill", iconColor: AppColor.amber) {
             SettingsSegmentRow(
                 icon: "circle.lefthalf.filled",
-                iconColor: Color(hex: "#F59E0B"),
+                iconColor: AppColor.amber,
                 title: "Theme",
-                selection: $theme
+                selection: vm.binding(for: \.appTheme)
             )
 
             Divider().padding(.leading, 58).opacity(0.3)
@@ -473,9 +460,9 @@ struct SettingsView: View {
             HStack(spacing: 14) {
                 Image(systemName: "paintpalette.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(Color(hex: "#F59E0B"))
+                    .foregroundStyle(AppColor.amber)
                     .frame(width: 28, height: 28)
-                    .background(Color(hex: "#F59E0B").opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                    .background(AppColor.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
                 Text("Accent colour")
                     .font(.system(size: 13, weight: .medium))
@@ -486,13 +473,13 @@ struct SettingsView: View {
                     ForEach(Array(AccentColor.options.enumerated()), id: \.offset) { index, pair in
                         Button {
                             withAnimation(.spring(duration: 0.18)) {
-                                accentIndex = index
+                                vm.update { $0.accentColorIndex = index }
                                 AccentColor.save(index: index)
                             }
                         } label: {
                             ZStack {
                                 Circle().fill(pair.1).frame(width: 22, height: 22)
-                                if accentIndex == index {
+                                if vm.settings.accentColorIndex == index {
                                     Circle()
                                         .stroke(Color.white, lineWidth: 2)
                                         .frame(width: 22, height: 22)
@@ -513,33 +500,33 @@ struct SettingsView: View {
 
     // MARK: Startup card
     private var startupCard: some View {
-        settingsCard(title: "Startup", icon: "power", iconColor: Color(hex: "#0D9488")) {
+        settingsCard(title: "Startup", icon: "power", iconColor: AppColor.teal) {
             SettingsToggleRow(
                 icon: "power",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "Launch at login",
                 subtitle: "Start Miqat automatically when you log in",
-                isOn: $launchAtLogin
+                isOn: vm.binding(for: \.launchAtLogin)
             )
 
             Divider().padding(.leading, 58).opacity(0.3)
 
             SettingsToggleRow(
                 icon: "macwindow",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "Show widget on launch",
                 subtitle: "Floating prayer times panel on desktop",
-                isOn: $showWidgetOnLaunch
+                isOn: vm.binding(for: \.showWidgetOnLaunch)
             )
 
             Divider().padding(.leading, 58).opacity(0.3)
 
             SettingsToggleRow(
                 icon: "rectangle.stack.fill",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "Open main window on launch",
                 subtitle: "Show full app window at startup",
-                isOn: $openWindowOnLaunch
+                isOn: vm.binding(for: \.openWindowOnLaunch)
             )
         }
     }
@@ -550,9 +537,9 @@ struct SettingsView: View {
             HStack(spacing: 14) {
                 Image(systemName: "app.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(Color(hex: "#0D9488"))
+                    .foregroundStyle(AppColor.teal)
                     .frame(width: 28, height: 28)
-                    .background(Color(hex: "#0D9488").opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                    .background(AppColor.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Miqat")
@@ -566,7 +553,7 @@ struct SettingsView: View {
 
                 Text("Up to date")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color(hex: "#0D9488"))
+                    .foregroundStyle(AppColor.teal)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 11)
@@ -575,7 +562,7 @@ struct SettingsView: View {
 
             SettingsActionRow(
                 icon: "star.fill",
-                iconColor: Color(hex: "#F59E0B"),
+                iconColor: AppColor.amber,
                 title: "Rate on App Store",
                 subtitle: "Enjoying Miqat? Leave a review"
             )
@@ -584,7 +571,7 @@ struct SettingsView: View {
 
             SettingsActionRow(
                 icon: "envelope.fill",
-                iconColor: Color(hex: "#2563EB"),
+                iconColor: AppColor.accentBlue,
                 title: "Send feedback",
                 subtitle: "Report a bug or suggest a feature"
             )
@@ -615,5 +602,29 @@ struct SettingsView: View {
         }
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+    }
+
+    // MARK: - Preview helpers
+    private func loadPreview() {
+        let repo = ServiceLocator.shared.resolve(LocationRepository.self)
+        let location = repo.getActiveLocation() ?? Location.presets[0]
+        previewVM.update(settings: vm.settings.prayerCalculationSettings)
+        previewVM.load(location: location)
+    }
+
+    private var previewPrayerName: String { previewVM.nextPrayerEntry?.referenceTime.rawValue ?? "--" }
+    private var previewTimeText: String   { previewPrayerName + "  " + (previewVM.nextPrayerEntry?.time ?? "--:--") }
+    private var previewTimeOnly: String   { previewVM.nextPrayerEntry?.time ?? "--:--" }
+    private var previewCountdownText: String {
+        previewPrayerName + "  " + (vm.settings.menuShowSeconds ? previewVM.countdownText : stripSeconds(previewVM.countdownText))
+    }
+    private var previewCountdownOnly: String {
+        vm.settings.menuShowSeconds ? previewVM.countdownText : stripSeconds(previewVM.countdownText)
+    }
+    private func stripSeconds(_ s: String) -> String {
+        let p = s.split(separator: ":")
+        if p.count == 3 { return "\(p[0]):\(p[1])" }
+        if p.count == 2 { return String(p[0]) }
+        return s
     }
 }

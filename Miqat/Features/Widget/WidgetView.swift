@@ -41,7 +41,7 @@ struct WidgetPrayerRow: View {
     }
 
     private var rowTimeColor: Color {
-        entry.isAlert   ? Color(hex: "#FCA5A5") :
+        entry.isAlert   ? AppColor.softRed :
         entry.isCurrent ? .white : .white.opacity(0.5)
     }
 
@@ -58,7 +58,7 @@ struct WidgetPrayerRow: View {
                 .frame(width: 6, height: 6)
         case .alert:
             Circle()
-                .fill(Color(hex: "#FCA5A5"))
+                .fill(AppColor.softRed)
                 .frame(width: 6, height: 6)
         default:
             Circle()
@@ -112,7 +112,7 @@ struct WidgetView: View {
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(Color(hex: "#FCD34D"))
+                    .foregroundStyle(AppColor.softAmber)
                 Text("\(MockPrayerData.streak)d")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)
@@ -225,12 +225,12 @@ struct WidgetView: View {
         let hour = currentHour
         let colors: [Color]
         switch hour {
-        case 3..<6:   colors = [Color(hex: "#1E1B4B"), Color(hex: "#4C1D95")]  // Fajr — deep navy → purple
-        case 6..<8:   colors = [Color(hex: "#92400E"), Color(hex: "#F59E0B")]  // Sunrise — burnt → gold
-        case 8..<13:  colors = [Color(hex: "#0F766E"), Color(hex: "#06B6D4")]  // Dhuhr — teal → sky
-        case 13..<17: colors = [Color(hex: "#92400E"), Color(hex: "#D97706")]  // Asr — amber
-        case 17..<20: colors = [Color(hex: "#7C2D12"), Color(hex: "#9333EA")]  // Maghrib — deep orange → purple
-        default:      colors = [Color(hex: "#0F172A"), Color(hex: "#1E1B4B")]  // Isha — dark navy
+        case 3..<6:   colors = [AppColor.darkNavy, AppColor.purple]  // Fajr — deep navy → purple
+        case 6..<8:   colors = [AppColor.burntOrange, AppColor.amber]  // Sunrise — burnt → gold
+        case 8..<13:  colors = [AppColor.deepTeal, AppColor.dhuhr]  // Dhuhr — teal → sky
+        case 13..<17: colors = [AppColor.burntOrange, AppColor.asr]  // Asr — amber
+        case 17..<20: colors = [AppColor.deepRed, AppColor.maghrib]  // Maghrib — deep orange → purple
+        default:      colors = [AppColor.deepNavy, AppColor.darkNavy]  // Isha — dark navy
         }
         return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
@@ -238,10 +238,10 @@ struct WidgetView: View {
     private var timeAccent: Color {
         let hour = currentHour
         switch hour {
-        case 3..<6:  return Color(hex: "#7C3AED")
-        case 6..<8:  return Color(hex: "#D97706")
-        case 8..<13: return Color(hex: "#0D9488")
-        default:     return Color(hex: "#0D9488")
+        case 3..<6:  return AppColor.accentPurple
+        case 6..<8:  return AppColor.asr
+        case 8..<13: return AppColor.teal
+        default:     return AppColor.teal
         }
     }
 }

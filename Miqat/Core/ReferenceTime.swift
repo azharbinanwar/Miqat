@@ -24,12 +24,12 @@ enum ReferenceTime: String, CaseIterable, Identifiable, Codable {
 
     var color: Color {
         switch self {
-        case .fajr:    return Color(hex: "#7C3AED")
-        case .sunrise: return Color(hex: "#F59E0B")
-        case .dhuhr:   return Color(hex: "#F59E0B")
-        case .asr:     return Color(hex: "#0D9488")
-        case .maghrib: return Color(hex: "#DC2626")
-        case .isha:    return Color(hex: "#7C3AED")
+        case .fajr:    return AppColor.fajr
+        case .sunrise: return AppColor.sunrise
+        case .dhuhr:   return AppColor.dhuhr
+        case .asr:     return AppColor.asr
+        case .maghrib: return AppColor.maghrib
+        case .isha:    return AppColor.isha
         }
     }
 

@@ -328,7 +328,7 @@ struct NotificationsView: View {
                 Toggle("", isOn: $allEnabled)
                     .toggleStyle(.switch)
                     .controlSize(.small)
-                    .tint(Color(hex: "#0D9488"))
+                    .tint(AppColor.teal)
             }
         }
         .padding(.horizontal, 24)
@@ -396,7 +396,7 @@ struct NotificationsView: View {
 
             NotifToggleRow(
                 icon: "bell.badge.slash.fill",
-                iconColor: Color(hex: "#F59E0B"),
+                iconColor: AppColor.amber,
                 title: "Fajr Exception",
                 subtitle: "Always alert for Fajr even in DND",
                 isOn: .constant(true)
@@ -469,7 +469,7 @@ struct NotificationsView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(
-                        testSent ? Color(hex: "#0D9488") : configs[selectedTestPrayer].referenceTime.color,
+                        testSent ? AppColor.teal : configs[selectedTestPrayer].referenceTime.color,
                         in: RoundedRectangle(cornerRadius: 9)
                     )
                 }
@@ -500,7 +500,7 @@ struct NotificationsView: View {
 
             NotifToggleRow(
                 icon: "hand.thumbsup.fill",
-                iconColor: Color(hex: "#0D9488"),
+                iconColor: AppColor.teal,
                 title: "\"I Prayed\" Quick Action",
                 subtitle: "Mark prayer from the notification banner",
                 isOn: $iPrayedAction
@@ -510,7 +510,7 @@ struct NotificationsView: View {
 
             NotifToggleRow(
                 icon: "clock.arrow.circlepath",
-                iconColor: Color(hex: "#F59E0B"),
+                iconColor: AppColor.amber,
                 title: "Snooze (5 min)",
                 subtitle: "Remind again if dismissed without marking",
                 isOn: $snoozeEnabled

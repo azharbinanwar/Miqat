@@ -14,9 +14,9 @@ enum DotStatus {
     case prayed, missed, upcoming, none
     var color: Color {
         switch self {
-        case .prayed:   return Color(hex: "#0D9488")
-        case .missed:   return Color(hex: "#DC2626")
-        case .upcoming: return Color(hex: "#6B7280")
+        case .prayed:   return AppColor.teal
+        case .missed:   return AppColor.alert
+        case .upcoming: return AppColor.upcoming
         case .none:     return Color.clear
         }
     }
@@ -63,7 +63,7 @@ struct MonthlyPrayerTile: View {
         case .prayed:
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13))
-                .foregroundStyle(Color(hex: "#0D9488"))
+                .foregroundStyle(AppColor.teal)
         case .passed:
             Image(systemName: "minus.circle")
                 .font(.system(size: 13))
@@ -88,14 +88,14 @@ struct DayCell: View {
                 .foregroundStyle(
                     !day.isCurrentMonth ? Color.secondary.opacity(0.3) :
                     isSelected          ? Color.white :
-                    day.isToday         ? Color(hex: "#0D9488") : Color.primary
+                    day.isToday         ? AppColor.teal : Color.primary
                 )
                 .frame(width: 28, height: 28)
                 .background {
                     if isSelected {
-                        Circle().fill(Color(hex: "#0D9488"))
+                        Circle().fill(AppColor.teal)
                     } else if day.isToday {
-                        Circle().stroke(Color(hex: "#0D9488"), lineWidth: 1.5)
+                        Circle().stroke(AppColor.teal, lineWidth: 1.5)
                     }
                 }
 

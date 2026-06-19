@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct TodayView: View {
-    @Binding var madhab: Madhab
+    let vm: SettingsViewModel
+    @State private var prayerVM = PrayerTimeViewModel()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -9,13 +10,13 @@ struct TodayView: View {
                 VStack(spacing: 20) {
                     // Top row: next prayer card + quick stats
                     HStack(alignment: .top, spacing: 16) {
-                        NextPrayerHeroCard()
-                        QuickStatsColumn()
+                        NextPrayerHeroCard(vm: prayerVM)
+                        QuickStatsColumn(entries: prayerVM.entries)
                     }
                     .padding(.horizontal, 24)
 
                     // Prayer times list
-                    PrayerListCard()
+                    PrayerListCard(entries: prayerVM.entries)
                         .padding(.horizontal, 24)
                 }
                 .padding(.top, 20)
@@ -23,20 +24,39 @@ struct TodayView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            loadPrayerTimes()
+            prayerVM.startLiveUpdates()
+        }
+        .onDisappear {
+            prayerVM.stopLiveUpdates()
+        }
+        .onChange(of: vm.settings.prayerCalculationSettings) { loadPrayerTimes() }
+    }
+
+    private func loadPrayerTimes() {
+        prayerVM.update(settings: vm.settings.prayerCalculationSettings)
+        let repo = ServiceLocator.shared.resolve(LocationRepository.self)
+        let location = repo.getActiveLocation() ?? Location.presets[0]
+        prayerVM.load(location: location)
     }
 }
 
 // MARK: - Next Prayer Hero
 
 struct NextPrayerHeroCard: View {
+    let vm: PrayerTimeViewModel
     @State private var prayed = false
+
+    private var nextEntry: PrayerEntry? { vm.nextPrayerEntry }
+    private var gradientColor: Color { nextEntry?.referenceTime.color ?? AppColor.teal }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(LinearGradient(
-                        colors: [Color(hex: "#0A3D38"), Color(hex: "#0D9488")],
+                        colors: [gradientColor.opacity(0.25), gradientColor],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ))
@@ -48,19 +68,19 @@ struct NextPrayerHeroCard: View {
                         .tracking(2)
 
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(MockPrayerData.nextPrayer)
+                        Text(nextEntry?.referenceTime.rawValue ?? "--")
                             .font(.system(size: 36, weight: .bold))
                             .foregroundStyle(.white)
-                        Text(MockPrayerData.nextPrayerTime)
+                        Text(nextEntry?.time ?? "")
                             .font(.system(size: 14))
                             .foregroundStyle(.white.opacity(0.6))
                     }
 
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(MockPrayerData.countdown)
+                        Text(vm.countdownText)
                             .font(.system(size: 48, weight: .heavy, design: .monospaced))
                             .foregroundStyle(.white)
-                        Text("hrs left")
+                        Text("left")
                             .font(.system(size: 13))
                             .foregroundStyle(.white.opacity(0.55))
                     }
@@ -70,7 +90,7 @@ struct NextPrayerHeroCard: View {
                     } label: {
                         Label(prayed ? "Prayed ✓" : "I Prayed", systemImage: prayed ? "checkmark.circle.fill" : "checkmark.circle")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(prayed ? Color(hex: "#0D9488") : .white)
+                            .foregroundStyle(prayed ? AppColor.teal : .white)
                             .padding(.horizontal, 18)
                             .padding(.vertical, 9)
                             .background(prayed ? .white : .white.opacity(0.15), in: RoundedRectangle(cornerRadius: 9))
@@ -88,17 +108,26 @@ struct NextPrayerHeroCard: View {
 // MARK: - Quick Stats Column
 
 struct QuickStatsColumn: View {
+    let entries: [PrayerEntry]
+
+    private var sunriseTime: String {
+        entries.first(where: { $0.referenceTime == .sunrise })?.time ?? "--:--"
+    }
+    private var maghribTime: String {
+        entries.first(where: { $0.referenceTime == .maghrib })?.time ?? "--:--"
+    }
+
     var body: some View {
         VStack(spacing: 12) {
-            StatCard(icon: "flame.fill",          iconColor: Color(hex: "#F59E0B"),
+            StatCard(icon: "flame.fill",          iconColor: AppColor.amber,
                      label: "Streak",              value: "\(MockPrayerData.streak) days")
-            StatCard(icon: "checkmark.circle.fill", iconColor: Color(hex: "#0D9488"),
+            StatCard(icon: "checkmark.circle.fill", iconColor: AppColor.teal,
                      label: "Today",               value: "\(MockPrayerData.todayPrayed)/\(MockPrayerData.todayTotal) prayed",
-                     valueColor: MockPrayerData.todayPrayed < MockPrayerData.todayTotal ? Color(hex: "#DC2626") : Color(hex: "#0D9488"))
-            StatCard(icon: "sunrise.fill",         iconColor: Color(hex: "#F59E0B"),
-                     label: "Sunrise",             value: MockPrayerData.sunrise)
-            StatCard(icon: "sunset.fill",          iconColor: Color(hex: "#F59E0B"),
-                     label: "Sunset",              value: MockPrayerData.sunset)
+                     valueColor: MockPrayerData.todayPrayed < MockPrayerData.todayTotal ? AppColor.alert : AppColor.teal)
+            StatCard(icon: "sunrise.fill",         iconColor: AppColor.amber,
+                     label: "Sunrise",             value: sunriseTime)
+            StatCard(icon: "sunset.fill",          iconColor: AppColor.amber,
+                     label: "Sunset",              value: maghribTime)
         }
         .frame(width: 160)
     }
@@ -138,6 +167,8 @@ struct StatCard: View {
 // MARK: - Prayer List Card
 
 struct PrayerListCard: View {
+    let entries: [PrayerEntry]
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -151,9 +182,9 @@ struct PrayerListCard: View {
             .padding(.bottom, 4)
 
             VStack(spacing: 0) {
-                ForEach(Array(MockPrayerData.entries.enumerated()), id: \.element.id) { index, entry in
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                     PrayerListRow(entry: entry)
-                    if index < MockPrayerData.entries.count - 1 {
+                    if index < entries.count - 1 {
                         Divider().padding(.leading, 52).opacity(0.35)
                     }
                 }
@@ -183,7 +214,7 @@ struct PrayerListRow: View {
 
             Text(entry.time)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                .foregroundStyle(entry.isAlert ? Color(hex: "#DC2626") : entry.isCurrent ? Color(hex: "#0D9488") : .secondary)
+                .foregroundStyle(entry.isAlert ? AppColor.alert : entry.isCurrent ? AppColor.teal : .secondary)
 
             statusView
                 .frame(width: 82, alignment: .trailing)
@@ -192,8 +223,8 @@ struct PrayerListRow: View {
         .padding(.vertical, 12)
         // flat colour — no corner radius — clipShape on card handles edges
         .background(
-            entry.isCurrent ? Color(hex: "#0D9488").opacity(0.09) :
-            entry.isAlert   ? Color(hex: "#DC2626").opacity(0.05) : Color.clear
+            entry.isCurrent ? AppColor.teal.opacity(0.09) :
+            entry.isAlert   ? AppColor.alert.opacity(0.05) : Color.clear
         )
     }
 
@@ -203,7 +234,7 @@ struct PrayerListRow: View {
         case .prayed:
             Label("Prayed", systemImage: "checkmark.circle.fill")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color(hex: "#0D9488"))
+                .foregroundStyle(AppColor.teal)
         case .passed:
             Label("Passed", systemImage: "checkmark.circle")
                 .font(.system(size: 11))
@@ -214,7 +245,7 @@ struct PrayerListRow: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Color(hex: "#0D9488"), in: Capsule())
+                .background(AppColor.teal, in: Capsule())
         case .upcoming:
             Text("Upcoming")
                 .font(.system(size: 11))
@@ -222,7 +253,7 @@ struct PrayerListRow: View {
         case .alert:
             Label("Soon", systemImage: "bell.fill")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color(hex: "#DC2626"))
+                .foregroundStyle(AppColor.alert)
         }
     }
 }

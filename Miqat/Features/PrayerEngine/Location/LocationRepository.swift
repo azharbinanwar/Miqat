@@ -1,5 +1,9 @@
 import Foundation
 
+extension Notification.Name {
+    static let locationDidChange = Notification.Name("MiqatLocationDidChange")
+}
+
 final class LocationRepository {
     private let listKey     = Keys.Defaults.locations
     private let activeIdKey = Keys.Defaults.activeLocationId
@@ -46,6 +50,12 @@ final class LocationRepository {
 
     func setActiveId(_ id: UUID) {
         UserDefaults.standard.set(id.uuidString, forKey: activeIdKey)
+        NotificationCenter.default.post(name: .locationDidChange, object: nil)
+    }
+
+    func getActiveLocation() -> Location? {
+        guard let id = getActiveId() else { return nil }
+        return load().first { $0.id == id }
     }
 
     // MARK: - Seed

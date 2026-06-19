@@ -33,11 +33,35 @@ enum PrayerStatus: String, Codable {
 }
 
 struct PrayerEntry: Identifiable, Codable {
-    let id = UUID()
+    let id: UUID
     var referenceTime: ReferenceTime
     let time: String
+    let date: Date?        // Raw Date from Adhan for countdown / scheduling
     let madhab: String
-    let status: PrayerStatus
+    var status: PrayerStatus
     var isCurrent: Bool = false
     var isAlert: Bool = false
+}
+
+extension PrayerEntry {
+    static func mock(
+        referenceTime: ReferenceTime,
+        time: String,
+        date: Date? = nil,
+        madhab: String = "Hanafi",
+        status: PrayerStatus = .upcoming,
+        isCurrent: Bool = false,
+        isAlert: Bool = false
+    ) -> PrayerEntry {
+        PrayerEntry(
+            id: UUID(),
+            referenceTime: referenceTime,
+            time: time,
+            date: date,
+            madhab: madhab,
+            status: status,
+            isCurrent: isCurrent,
+            isAlert: isAlert
+        )
+    }
 }

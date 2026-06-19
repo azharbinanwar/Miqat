@@ -70,9 +70,9 @@ struct CitySearchDialog: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: "mappin.circle.fill")
                                         .font(.system(size: 16))
-                                        .foregroundStyle(Color(hex: "#0D9488"))
+                                        .foregroundStyle(AppColor.teal)
                                         .frame(width: 32, height: 32)
-                                        .background(Color(hex: "#0D9488").opacity(0.1),
+                                        .background(AppColor.teal.opacity(0.1),
                                                     in: RoundedRectangle(cornerRadius: 8))
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(result.name)
@@ -85,7 +85,7 @@ struct CitySearchDialog: View {
                                     Spacer()
                                     Image(systemName: "plus.circle")
                                         .font(.system(size: 14))
-                                        .foregroundStyle(Color(hex: "#0D9488").opacity(0.6))
+                                        .foregroundStyle(AppColor.teal.opacity(0.6))
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 11)

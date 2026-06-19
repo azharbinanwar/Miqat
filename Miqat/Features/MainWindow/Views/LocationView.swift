@@ -84,7 +84,7 @@ struct LocationView: View {
                         locationsCard(
                             title: "My Cities",
                             icon: "mappin.circle.fill",
-                            iconColor: Color(hex: "#7C3AED"),
+                            iconColor: AppColor.accentPurple,
                             items: vm.userLocations,
                             deleteable: true
                         )
@@ -166,7 +166,7 @@ struct LocationView: View {
             HStack(spacing: 6) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color(hex: "#0D9488"))
+                    .foregroundStyle(AppColor.teal)
                 Text("Add a place")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -212,11 +212,11 @@ struct LocationView: View {
                     } label: {
                         Text(vm.fetchState == .denied ? "Open Settings" : vm.fetchState == .failed ? "Retry" : "Detect")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(vm.fetchState == .failed || vm.fetchState == .denied ? Color(hex: "#DC2626") : AccentColor.current)
+                            .foregroundStyle(vm.fetchState == .failed || vm.fetchState == .denied ? AppColor.alert : AccentColor.current)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 5)
                             .background(
-                                (vm.fetchState == .failed || vm.fetchState == .denied ? Color(hex: "#DC2626") : AccentColor.current).opacity(0.1),
+                                (vm.fetchState == .failed || vm.fetchState == .denied ? AppColor.alert : AccentColor.current).opacity(0.1),
                                 in: Capsule()
                             )
                     }
@@ -274,8 +274,8 @@ struct LocationView: View {
 
     private var gpsStatusColor: Color {
         switch vm.fetchState {
-        case .denied, .failed: return Color(hex: "#DC2626")
-        case .done:            return Color(hex: "#0D9488")
+        case .denied, .failed: return AppColor.alert
+        case .done:            return AppColor.teal
         default:               return .secondary
         }
     }

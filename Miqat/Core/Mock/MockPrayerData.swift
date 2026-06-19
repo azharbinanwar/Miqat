@@ -2,12 +2,12 @@ import SwiftUI
 
 enum MockPrayerData {
     static let entries: [PrayerEntry] = [
-        PrayerEntry(referenceTime: .fajr,    time: "4:18 AM",  madhab: "Hanafi", status: .prayed),
-        PrayerEntry(referenceTime: .sunrise, time: "5:47 AM",  madhab: "Hanafi", status: .passed),
-        PrayerEntry(referenceTime: .dhuhr,   time: "12:08 PM", madhab: "Hanafi", status: .prayed),
-        PrayerEntry(referenceTime: .asr,     time: "4:42 PM",  madhab: "Hanafi", status: .current,  isCurrent: true),
-        PrayerEntry(referenceTime: .maghrib, time: "7:21 PM",  madhab: "Hanafi", status: .alert,    isAlert: true),
-        PrayerEntry(referenceTime: .isha,    time: "8:54 PM",  madhab: "Hanafi", status: .upcoming),
+        PrayerEntry.mock(referenceTime: .fajr,    time: "4:18 AM",  status: .prayed),
+        PrayerEntry.mock(referenceTime: .sunrise, time: "5:47 AM",  status: .passed),
+        PrayerEntry.mock(referenceTime: .dhuhr,   time: "12:08 PM", status: .prayed),
+        PrayerEntry.mock(referenceTime: .asr,     time: "4:42 PM",  status: .current, isCurrent: true),
+        PrayerEntry.mock(referenceTime: .maghrib, time: "7:21 PM",  status: .alert,   isAlert: true),
+        PrayerEntry.mock(referenceTime: .isha,    time: "8:54 PM",  status: .upcoming),
     ]
 
     static let nextPrayer     = "Asr"
