@@ -209,31 +209,14 @@ struct AdjustmentRow: View {
     }
 }
 
-// MARK: - Settings Enums
-
-enum MenuBarDisplay: String, CaseIterable { case countdown = "Countdown"; case nextTime = "Next Time" }
-enum AppTheme: String, CaseIterable { case light = "Light"; case dark = "Dark"; case system = "System" }
-// Madhab is defined globally in MockPrayerData.swift
-enum CalcMethod: String, CaseIterable {
-    case mwl     = "MWL"
-    case isna    = "ISNA"
-    case egypt   = "Egypt"
-    case makkah  = "Makkah"
-    case karachi = "Karachi"
-}
-enum HighLatRule: String, CaseIterable {
-    case middleNight = "Middle Night"
-    case seventhNight = "1/7 Night"
-    case angleBased  = "Angle"
-}
-
 // MARK: - Settings View
 
 struct SettingsView: View {
     // Prayer calculation
-    @State private var calcMethod: CalcMethod      = .mwl
+    @State private var calcMethod: CalculationMethod = .mwl
     @State private var madhab: Madhab               = .hanafi
     @State private var highLatRule: HighLatRule     = .middleNight
+    @State private var showMethodDialog             = false
 
     // Time adjustments (minutes offset per prayer)
     @State private var fajrAdj    = 0
@@ -280,6 +263,9 @@ struct SettingsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .sheet(isPresented: $showMethodDialog) {
+            MethodPickerDialog(selection: $calcMethod) { _ in }
+        }
     }
 
     // MARK: Top bar
@@ -301,42 +287,15 @@ struct SettingsView: View {
     // MARK: Calculation card
     private var calculationCard: some View {
         settingsCard(title: "Prayer Calculation", icon: "moon.stars.fill", iconColor: Color(hex: "#7C3AED")) {
-            // Calc method picker (horizontal scroll)
-            HStack(spacing: 14) {
-                Image(systemName: "function")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color(hex: "#7C3AED"))
-                    .frame(width: 28, height: 28)
-                    .background(Color(hex: "#7C3AED").opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
-
-                Text("Method")
-                    .font(.system(size: 13, weight: .medium))
-
-                Spacer()
-
-                HStack(spacing: 0) {
-                    ForEach(CalcMethod.allCases, id: \.self) { m in
-                        Button {
-                            withAnimation(.spring(duration: 0.18)) { calcMethod = m }
-                        } label: {
-                            Text(m.rawValue)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(calcMethod == m ? .white : .secondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(
-                                    calcMethod == m ? Color(hex: "#7C3AED") : Color.clear,
-                                    in: RoundedRectangle(cornerRadius: 6)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+            SettingsActionRow(
+                icon: "function",
+                iconColor: Color(hex: "#7C3AED"),
+                title: "Method",
+                subtitle: "Calculation method for prayer times",
+                value: calcMethod.displayName
+            ) {
+                showMethodDialog = true
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 11)
 
             Divider().padding(.leading, 58).opacity(0.3)
 
@@ -375,17 +334,17 @@ struct SettingsView: View {
             .padding(.top, 10)
             .padding(.bottom, 2)
 
-            AdjustmentRow(label: "Fajr",    icon: "moon.stars.fill", iconColor: Color(hex: "#7C3AED"), value: $fajrAdj)
+            AdjustmentRow(label: "Fajr",    icon: Prayer.fajr.icon,     iconColor: Prayer.fajr.color,   value: $fajrAdj)
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Shuruq",  icon: "sunrise.fill",    iconColor: Color(hex: "#F59E0B"), value: $shuruqAdj)
+            AdjustmentRow(label: ReferenceTime.sunrise.label, icon: ReferenceTime.sunrise.icon, iconColor: ReferenceTime.sunrise.color, value: $shuruqAdj)
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Dhuhr",   icon: "sun.max.fill",    iconColor: Color(hex: "#0D9488"), value: $dhuhrAdj)
+            AdjustmentRow(label: "Dhuhr",   icon: Prayer.dhuhr.icon,    iconColor: Prayer.dhuhr.color, value: $dhuhrAdj)
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Asr",     icon: "sun.min.fill",    iconColor: Color(hex: "#D97706"), value: $asrAdj)
+            AdjustmentRow(label: "Asr",     icon: Prayer.asr.icon,      iconColor: Prayer.asr.color,   value: $asrAdj)
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Maghrib", icon: "sunset.fill",     iconColor: Color(hex: "#DC2626"), value: $maghribAdj)
+            AdjustmentRow(label: "Maghrib", icon: Prayer.maghrib.icon, iconColor: Prayer.maghrib.color, value: $maghribAdj)
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Isha",    icon: "moon.fill",       iconColor: Color(hex: "#4F46E5"), value: $ishaAdj)
+            AdjustmentRow(label: "Isha",    icon: Prayer.isha.icon,     iconColor: Prayer.isha.color,  value: $ishaAdj)
 
             Divider().padding(.horizontal, 16).opacity(0.4)
 

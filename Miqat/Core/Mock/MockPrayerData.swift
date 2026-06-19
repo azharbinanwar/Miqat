@@ -1,68 +1,13 @@
 import SwiftUI
 
-// MARK: - Global Madhab constant (used in UI, DB, PrayerEngine)
-enum Madhab: String, CaseIterable, Codable {
-    case hanafi  = "Hanafi"
-    case shafi   = "Shafi'i"
-}
-
-enum Prayer: String, CaseIterable {
-    case fajr    = "Fajr"
-    case sunrise = "Sunrise"
-    case dhuhr   = "Dhuhr"
-    case asr     = "Asr"
-    case maghrib = "Maghrib"
-    case isha    = "Isha"
-
-    var icon: String {
-        switch self {
-        case .fajr:    return "moon.fill"
-        case .sunrise: return "sunrise.fill"
-        case .dhuhr:   return "sun.max.fill"
-        case .asr:     return "sun.haze.fill"
-        case .maghrib: return "sunset.fill"
-        case .isha:    return "moon.stars.fill"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .fajr:    return Color(hex: "#7C3AED")
-        case .sunrise: return Color(hex: "#F59E0B")
-        case .dhuhr:   return Color(hex: "#F59E0B")
-        case .asr:     return Color(hex: "#0D9488")
-        case .maghrib: return Color(hex: "#DC2626")
-        case .isha:    return Color(hex: "#7C3AED")
-        }
-    }
-}
-
-enum PrayerStatus: String {
-    case prayed   = "Prayed"
-    case passed   = "Passed"
-    case current  = "Coming up"
-    case upcoming = "Upcoming"
-    case alert    = "Soon"
-}
-
-struct PrayerEntry: Identifiable {
-    let id = UUID()
-    let prayer: Prayer
-    let time: String
-    let madhab: String
-    let status: PrayerStatus
-    var isCurrent: Bool = false
-    var isAlert: Bool = false
-}
-
 enum MockPrayerData {
     static let entries: [PrayerEntry] = [
-        PrayerEntry(prayer: .fajr,    time: "4:18 AM",  madhab: "Hanafi", status: .prayed),
-        PrayerEntry(prayer: .sunrise, time: "5:47 AM",  madhab: "Hanafi", status: .passed),
-        PrayerEntry(prayer: .dhuhr,   time: "12:08 PM", madhab: "Hanafi", status: .prayed),
-        PrayerEntry(prayer: .asr,     time: "4:42 PM",  madhab: "Hanafi", status: .current,  isCurrent: true),
-        PrayerEntry(prayer: .maghrib, time: "7:21 PM",  madhab: "Hanafi", status: .alert,    isAlert: true),
-        PrayerEntry(prayer: .isha,    time: "8:54 PM",  madhab: "Hanafi", status: .upcoming),
+        PrayerEntry(referenceTime: .fajr,    time: "4:18 AM",  madhab: "Hanafi", status: .prayed),
+        PrayerEntry(referenceTime: .sunrise, time: "5:47 AM",  madhab: "Hanafi", status: .passed),
+        PrayerEntry(referenceTime: .dhuhr,   time: "12:08 PM", madhab: "Hanafi", status: .prayed),
+        PrayerEntry(referenceTime: .asr,     time: "4:42 PM",  madhab: "Hanafi", status: .current,  isCurrent: true),
+        PrayerEntry(referenceTime: .maghrib, time: "7:21 PM",  madhab: "Hanafi", status: .alert,    isAlert: true),
+        PrayerEntry(referenceTime: .isha,    time: "8:54 PM",  madhab: "Hanafi", status: .upcoming),
     ]
 
     static let nextPrayer     = "Asr"

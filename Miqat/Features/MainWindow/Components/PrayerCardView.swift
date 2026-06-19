@@ -8,13 +8,13 @@ struct PrayerCardView: View {
             VStack(alignment: .leading, spacing: 6) {
                 // Icon + name
                 HStack {
-                    Image(systemName: entry.prayer.icon)
+                    Image(systemName: entry.referenceTime.icon)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(entry.prayer.color)
+                        .foregroundStyle(entry.referenceTime.color)
                     Spacer()
                 }
 
-                Text(entry.prayer.rawValue)
+                Text(entry.referenceTime.rawValue)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
 

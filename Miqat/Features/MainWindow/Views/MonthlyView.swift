@@ -24,7 +24,7 @@ enum DotStatus {
 
 struct MonthlyPrayerItem: Identifiable {
     let id = UUID()
-    let prayer: Prayer
+    let referenceTime: ReferenceTime
     let time: String
     let status: PrayerStatus
 }
@@ -37,12 +37,12 @@ struct MonthlyPrayerTile: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.prayer.icon)
+            Image(systemName: item.referenceTime.icon)
                 .font(.system(size: 13))
-                .foregroundStyle(item.prayer.color)
+                .foregroundStyle(item.referenceTime.color)
                 .frame(width: 20)
 
-            Text(item.prayer.rawValue)
+            Text(item.referenceTime.rawValue)
                 .font(.system(size: 13))
 
             Spacer()
@@ -123,12 +123,12 @@ struct MonthlyView: View {
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
     private let mockPrayerItems: [MonthlyPrayerItem] = [
-        MonthlyPrayerItem(prayer: .fajr,    time: "4:18 AM",  status: .prayed),
-        MonthlyPrayerItem(prayer: .sunrise, time: "5:47 AM",  status: .passed),
-        MonthlyPrayerItem(prayer: .dhuhr,   time: "12:08 PM", status: .prayed),
-        MonthlyPrayerItem(prayer: .asr,     time: "4:42 PM",  status: .upcoming),
-        MonthlyPrayerItem(prayer: .maghrib, time: "7:21 PM",  status: .upcoming),
-        MonthlyPrayerItem(prayer: .isha,    time: "8:54 PM",  status: .upcoming),
+        MonthlyPrayerItem(referenceTime: .fajr,    time: "4:18 AM",  status: .prayed),
+        MonthlyPrayerItem(referenceTime: .sunrise, time: "5:47 AM",  status: .passed),
+        MonthlyPrayerItem(referenceTime: .dhuhr,   time: "12:08 PM", status: .prayed),
+        MonthlyPrayerItem(referenceTime: .asr,     time: "4:42 PM",  status: .upcoming),
+        MonthlyPrayerItem(referenceTime: .maghrib, time: "7:21 PM",  status: .upcoming),
+        MonthlyPrayerItem(referenceTime: .isha,    time: "8:54 PM",  status: .upcoming),
     ]
 
     var body: some View {

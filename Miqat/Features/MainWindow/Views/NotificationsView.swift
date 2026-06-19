@@ -10,7 +10,7 @@ enum AzanSound: String, CaseIterable {
 
 struct PrayerNotifConfig: Identifiable {
     let id = UUID()
-    let prayer: Prayer
+    let referenceTime: ReferenceTime
     var enabled: Bool
     var reminderMinutes: Int
     var secondReminder: Bool
@@ -33,13 +33,13 @@ struct NotifPrayerRow: View {
             // Collapsed header — always visible
             Button { withAnimation(.spring(duration: 0.22)) { expanded.toggle() } } label: {
                 HStack(spacing: 14) {
-                    Image(systemName: config.prayer.icon)
+                    Image(systemName: config.referenceTime.icon)
                         .font(.system(size: 14))
-                        .foregroundStyle(config.enabled ? config.prayer.color : .secondary.opacity(0.35))
+                        .foregroundStyle(config.enabled ? config.referenceTime.color : .secondary.opacity(0.35))
                         .frame(width: 20)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(config.prayer.rawValue)
+                        Text(config.referenceTime.rawValue)
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(config.enabled ? .primary : .secondary)
 
@@ -62,7 +62,7 @@ struct NotifPrayerRow: View {
                     Toggle("", isOn: $config.enabled)
                         .toggleStyle(.switch)
                         .controlSize(.small)
-                        .tint(config.prayer.color)
+                        .tint(config.referenceTime.color)
                         .onChange(of: config.enabled) { _, on in
                             if !on { withAnimation { expanded = false } }
                         }
@@ -83,7 +83,7 @@ struct NotifPrayerRow: View {
                     HStack(spacing: 12) {
                         Image(systemName: "bell.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(config.prayer.color.opacity(0.7))
+                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
                             .frame(width: 20)
 
                         Text("Remind me")
@@ -107,7 +107,7 @@ struct NotifPrayerRow: View {
                                         .padding(.vertical, 5)
                                         .background(
                                             config.reminderMinutes == min
-                                                ? config.prayer.color
+                                                ? config.referenceTime.color
                                                 : Color(NSColor.controlBackgroundColor),
                                             in: RoundedRectangle(cornerRadius: 6)
                                         )
@@ -125,7 +125,7 @@ struct NotifPrayerRow: View {
                     HStack(spacing: 12) {
                         Image(systemName: "bell.badge.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(config.prayer.color.opacity(0.7))
+                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
                             .frame(width: 20)
 
                         Text("Also alert at prayer time")
@@ -137,7 +137,7 @@ struct NotifPrayerRow: View {
                         Toggle("", isOn: $config.secondReminder)
                             .toggleStyle(.switch)
                             .controlSize(.mini)
-                            .tint(config.prayer.color)
+                            .tint(config.referenceTime.color)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
@@ -148,7 +148,7 @@ struct NotifPrayerRow: View {
                     HStack(spacing: 12) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(config.prayer.color.opacity(0.7))
+                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
                             .frame(width: 20)
 
                         Text("Sound")
@@ -170,7 +170,7 @@ struct NotifPrayerRow: View {
                                             .padding(.horizontal, 9)
                                             .padding(.vertical, 5)
                                             .background(
-                                                config.sound == s ? config.prayer.color : Color.clear,
+                                                config.sound == s ? config.referenceTime.color : Color.clear,
                                                 in: RoundedRectangle(cornerRadius: 6)
                                             )
                                     }
@@ -189,10 +189,10 @@ struct NotifPrayerRow: View {
                             } label: {
                                 Image(systemName: isPlaying ? "stop.fill" : "play.fill")
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(config.prayer.color)
+                                    .foregroundStyle(config.referenceTime.color)
                                     .frame(width: 28, height: 28)
-                                    .background(config.prayer.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
-                                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(config.prayer.color.opacity(0.2), lineWidth: 1))
+                                    .background(config.referenceTime.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(config.referenceTime.color.opacity(0.2), lineWidth: 1))
                             }
                             .buttonStyle(.plain)
                         }
@@ -207,7 +207,7 @@ struct NotifPrayerRow: View {
                         Image(systemName: config.volume < 0.1 ? "speaker.slash.fill" :
                               config.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.3.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(config.prayer.color.opacity(0.7))
+                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
                             .frame(width: 20)
 
                         Text("Volume")
@@ -215,7 +215,7 @@ struct NotifPrayerRow: View {
                             .foregroundStyle(.secondary)
 
                         Slider(value: $config.volume, in: 0...1)
-                            .tint(config.prayer.color)
+                            .tint(config.referenceTime.color)
 
                         Text("\(Int(config.volume * 100))%")
                             .font(.system(size: 10, weight: .semibold))
@@ -278,11 +278,11 @@ struct NotifToggleRow: View {
 
 struct NotificationsView: View {
     @State private var configs: [PrayerNotifConfig] = [
-        PrayerNotifConfig(prayer: .fajr,    enabled: true,  reminderMinutes: 20, secondReminder: true,  sound: .medina,   volume: 1.0),
-        PrayerNotifConfig(prayer: .dhuhr,   enabled: true,  reminderMinutes: 20, secondReminder: false, sound: .default_, volume: 0.7),
-        PrayerNotifConfig(prayer: .asr,     enabled: true,  reminderMinutes: 30, secondReminder: true,  sound: .mecca,    volume: 0.8),
-        PrayerNotifConfig(prayer: .maghrib, enabled: true,  reminderMinutes: 15, secondReminder: true,  sound: .mecca,    volume: 0.8),
-        PrayerNotifConfig(prayer: .isha,    enabled: false, reminderMinutes: 20, secondReminder: false, sound: .default_, volume: 0.6),
+        PrayerNotifConfig(referenceTime: .fajr,    enabled: true,  reminderMinutes: 20, secondReminder: true,  sound: .medina,   volume: 1.0),
+        PrayerNotifConfig(referenceTime: .dhuhr,   enabled: true,  reminderMinutes: 20, secondReminder: false, sound: .default_, volume: 0.7),
+        PrayerNotifConfig(referenceTime: .asr,     enabled: true,  reminderMinutes: 30, secondReminder: true,  sound: .mecca,    volume: 0.8),
+        PrayerNotifConfig(referenceTime: .maghrib, enabled: true,  reminderMinutes: 15, secondReminder: true,  sound: .mecca,    volume: 0.8),
+        PrayerNotifConfig(referenceTime: .isha,    enabled: false, reminderMinutes: 20, secondReminder: false, sound: .default_, volume: 0.6),
     ]
 
     @State private var allEnabled      = true
@@ -434,13 +434,13 @@ struct NotificationsView: View {
                         Button {
                             withAnimation(.spring(duration: 0.15)) { selectedTestPrayer = index }
                         } label: {
-                            Image(systemName: config.prayer.icon)
+                            Image(systemName: config.referenceTime.icon)
                                 .font(.system(size: 12))
-                                .foregroundStyle(selectedTestPrayer == index ? .white : config.prayer.color)
+                                .foregroundStyle(selectedTestPrayer == index ? .white : config.referenceTime.color)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 7)
                                 .background(
-                                    selectedTestPrayer == index ? config.prayer.color : Color.clear,
+                                    selectedTestPrayer == index ? config.referenceTime.color : Color.clear,
                                     in: RoundedRectangle(cornerRadius: 6)
                                 )
                         }
@@ -469,7 +469,7 @@ struct NotificationsView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(
-                        testSent ? Color(hex: "#0D9488") : configs[selectedTestPrayer].prayer.color,
+                        testSent ? Color(hex: "#0D9488") : configs[selectedTestPrayer].referenceTime.color,
                         in: RoundedRectangle(cornerRadius: 9)
                     )
                 }

@@ -8,12 +8,12 @@ struct WidgetPrayerRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: entry.prayer.icon)
+            Image(systemName: entry.referenceTime.icon)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(rowIconColor)
                 .frame(width: 16)
 
-            Text(entry.prayer.rawValue)
+            Text(entry.referenceTime.rawValue)
                 .font(.system(size: 13, weight: entry.isCurrent ? .semibold : .regular))
                 .foregroundStyle(rowTextColor)
 

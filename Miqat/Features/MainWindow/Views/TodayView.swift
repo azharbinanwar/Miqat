@@ -170,12 +170,12 @@ struct PrayerListRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: entry.prayer.icon)
+            Image(systemName: entry.referenceTime.icon)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(entry.prayer.color.opacity(entry.status == .prayed || entry.status == .passed ? 0.35 : 1))
+                .foregroundStyle(entry.referenceTime.color.opacity(entry.status == .prayed || entry.status == .passed ? 0.35 : 1))
                 .frame(width: 22)
 
-            Text(entry.prayer.rawValue)
+            Text(entry.referenceTime.rawValue)
                 .font(.system(size: 14, weight: entry.isCurrent ? .semibold : .regular))
                 .foregroundStyle(entry.isCurrent ? .primary : entry.status == .prayed || entry.status == .passed ? .secondary : .primary)
 
