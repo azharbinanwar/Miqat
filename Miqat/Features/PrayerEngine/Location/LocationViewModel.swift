@@ -23,14 +23,19 @@ final class LocationViewModel {
         }
     }
 
-    private let repo   = LocationRepository.shared
-    private let lm     = LocationManager.shared
-    private let search = CitySearchService()
-    private var bag    = Set<AnyCancellable>()
+    private let repo: LocationRepository
+    private let lm: LocationManager
+    private let search: CitySearchService
+    private var bag = Set<AnyCancellable>()
     private var coordCancellable : AnyCancellable?
     private var fetchTask        : Task<Void, Never>?
 
-    private init() {
+    private init(repo: LocationRepository = ServiceLocator.shared.resolve(LocationRepository.self),
+                 lm: LocationManager       = ServiceLocator.shared.resolve(LocationManager.self),
+                 search: CitySearchService = ServiceLocator.shared.resolve(CitySearchService.self)) {
+        self.repo = repo
+        self.lm = lm
+        self.search = search
         repo.seedIfEmpty()
         locations        = repo.load()
         activeLocationId = repo.getActiveId() ?? locations.first?.id
@@ -122,6 +127,12 @@ final class LocationViewModel {
         fetchTask        = nil
         coordCancellable = nil
         lm.stopUpdatesOnly()
+
+        guard (-90...90).contains(coord.latitude), (-180...180).contains(coord.longitude) else {
+            gpsStatus  = "Invalid coordinates"
+            fetchState = .failed
+            return
+        }
 
         let city = lm.cityName.isEmpty ? "Current Location" : lm.cityName
         let loc  = Location(label: "GPS", icon: "location.fill",

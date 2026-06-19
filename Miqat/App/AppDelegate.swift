@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        setupDI()
         setupStatusItem()
         setupPopover()
 
@@ -115,6 +116,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         print("[AppDelegate] main window shown")
         mainWindowController = NSWindowController(window: window)
+    }
+
+    // MARK: - Dependency Injection
+
+    private func setupDI() {
+        ServiceLocator.shared.register(LocationRepository.self)  { LocationRepository() }
+        ServiceLocator.shared.register(LocationManager.self)     { LocationManager() }
+        ServiceLocator.shared.register(CitySearchService.self)   { CitySearchService() }
     }
 
     // MARK: - Widget (floating NSPanel)

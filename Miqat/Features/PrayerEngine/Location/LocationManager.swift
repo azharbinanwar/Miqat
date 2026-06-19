@@ -3,8 +3,6 @@ import CoreLocation
 import Combine
 
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    static let shared = LocationManager()
-
     @Published private(set) var authStatus : CLAuthorizationStatus   = .notDetermined
     @Published private(set) var coordinate : CLLocationCoordinate2D? = nil
     @Published private(set) var cityName   : String                  = ""
@@ -15,7 +13,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     var isAuthorized: Bool { authStatus == .authorizedAlways || authStatus == .authorized }
     var isDenied: Bool     { authStatus == .denied || authStatus == .restricted }
 
-    private override init() {
+    override init() {
         super.init()
         manager.delegate        = self
         manager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
@@ -78,7 +76,7 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             let city    = place.locality ?? place.administrativeArea ?? ""
             let country = place.country ?? ""
             let name    = [city, country].filter { !$0.isEmpty }.joined(separator: ", ")
-            print("[LocationManager] city resolved: \(name) — mainWindow exists: \(NSApp.mainWindow != nil)")
+            print("[LocationManager] city resolved: \(name)")
             DispatchQueue.main.async { self?.cityName = name }
         }
     }

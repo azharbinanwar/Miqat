@@ -47,7 +47,7 @@ final class CitySearchService: ObservableObject {
         if !loaded { await load() }
         let q = query.lowercased()
         let matches = allCities
-            .filter { $0.nameLower.hasPrefix(q) }
+            .filter { $0.nameLower.contains(q) }
             .prefix(20)
             .map { e -> CityResult in
                 let country = Self.countries[e.country] ?? e.country
