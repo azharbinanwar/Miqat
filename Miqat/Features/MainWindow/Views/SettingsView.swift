@@ -253,19 +253,14 @@ struct SettingsView: View {
 
     // Appearance
     @State private var theme: AppTheme              = .system
-    @State private var accentIndex: Int             = 0
+    @State private var accentIndex: Int = {
+        max(0, min(AccentColor.options.count - 1, UserDefaults.standard.integer(forKey: Keys.Defaults.accentColorIndex)))
+    }()
 
     // Startup
     @State private var launchAtLogin               = true
     @State private var showWidgetOnLaunch          = true
     @State private var openWindowOnLaunch          = false
-
-    private let accentColors: [(String, Color)] = [
-        ("Teal",   Color(hex: "#0D9488")),
-        ("Purple", Color(hex: "#7C3AED")),
-        ("Gold",   Color(hex: "#D97706")),
-        ("Blue",   Color(hex: "#2563EB")),
-    ]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -529,9 +524,12 @@ struct SettingsView: View {
                 Spacer()
 
                 HStack(spacing: 8) {
-                    ForEach(Array(accentColors.enumerated()), id: \.offset) { index, pair in
+                    ForEach(Array(AccentColor.options.enumerated()), id: \.offset) { index, pair in
                         Button {
-                            withAnimation(.spring(duration: 0.18)) { accentIndex = index }
+                            withAnimation(.spring(duration: 0.18)) {
+                                accentIndex = index
+                                AccentColor.save(index: index)
+                            }
                         } label: {
                             ZStack {
                                 Circle().fill(pair.1).frame(width: 22, height: 22)

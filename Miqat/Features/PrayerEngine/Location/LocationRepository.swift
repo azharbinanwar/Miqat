@@ -4,8 +4,7 @@ final class LocationRepository {
     private let listKey     = Keys.Defaults.locations
     private let activeIdKey = Keys.Defaults.activeLocationId
 
-    static let shared = LocationRepository()
-    private init() {}
+    init() {}
 
     // MARK: - List
 

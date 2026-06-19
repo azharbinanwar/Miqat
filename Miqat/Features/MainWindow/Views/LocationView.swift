@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - Location Row
 
@@ -12,9 +13,9 @@ struct LocationRow: View {
         HStack(spacing: 14) {
             Image(systemName: location.icon)
                 .font(.system(size: 18))
-                .foregroundStyle(Color(hex: "#0D9488"))
+                .foregroundStyle(AccentColor.current)
                 .frame(width: 40, height: 40)
-                .background(Color(hex: "#0D9488").opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                .background(AccentColor.current.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(location.label)
@@ -30,11 +31,11 @@ struct LocationRow: View {
                 // Radio circle
                 ZStack {
                     Circle()
-                        .strokeBorder(isActive ? Color(hex: "#0D9488") : Color.secondary.opacity(0.25), lineWidth: 1.5)
+                        .strokeBorder(isActive ? AccentColor.current : Color.secondary.opacity(0.25), lineWidth: 1.5)
                         .frame(width: 20, height: 20)
                     if isActive {
                         Circle()
-                            .fill(Color(hex: "#0D9488"))
+                            .fill(AccentColor.current)
                             .frame(width: 12, height: 12)
                     }
                 }
@@ -52,7 +53,7 @@ struct LocationRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(isActive ? Color(hex: "#0D9488").opacity(0.05) : Color.clear)
+        .background(isActive ? AccentColor.current.opacity(0.05) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture { if !isActive { onSelect() } }
     }
@@ -74,7 +75,7 @@ struct LocationView: View {
                     locationsCard(
                         title: "Default Cities",
                         icon: "building.columns.fill",
-                        iconColor: Color(hex: "#0D9488"),
+                        iconColor: AccentColor.current,
                         items: vm.seedLocations,
                         deleteable: false
                     )
@@ -178,51 +179,75 @@ struct LocationView: View {
             Divider().padding(.horizontal, 16).opacity(0.4)
 
             // GPS row
-            HStack(spacing: 12) {
-                Image(systemName: "location.circle")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color(hex: "#2563EB"))
-                    .frame(width: 28, height: 28)
-                    .background(Color(hex: "#2563EB").opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+            HStack(spacing: 14) {
+                Image(systemName: vm.fetchState == .fetching ? "location.fill" : "location.circle")
+                    .font(.system(size: 16))
+                    .foregroundStyle(AccentColor.current)
+                    .frame(width: 36, height: 36)
+                    .background(AccentColor.current.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Use current location")
                         .font(.system(size: 13, weight: .medium))
-                    Text(vm.gpsStatus.isEmpty ? "Detect via GPS" : vm.gpsStatus)
+                        .foregroundStyle(.primary)
+                    Text(gpsStatusText)
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(gpsStatusColor)
                 }
+
                 Spacer()
-                Button { vm.startGPS() } label: {
-                    Text("Detect")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(hex: "#2563EB"))
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
-                        .background(Color(hex: "#2563EB").opacity(0.1), in: RoundedRectangle(cornerRadius: 7))
-                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color(hex: "#2563EB").opacity(0.2), lineWidth: 1))
+
+                if vm.fetchState == .fetching {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button {
+                        if vm.fetchState == .denied {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } else {
+                            vm.startGPS()
+                        }
+                    } label: {
+                        Text(vm.fetchState == .denied ? "Open Settings" : vm.fetchState == .failed ? "Retry" : "Detect")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(vm.fetchState == .failed || vm.fetchState == .denied ? Color(hex: "#DC2626") : AccentColor.current)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(
+                                (vm.fetchState == .failed || vm.fetchState == .denied ? Color(hex: "#DC2626") : AccentColor.current).opacity(0.1),
+                                in: Capsule()
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
 
-            Divider().padding(.leading, 58).opacity(0.3)
+            Divider().padding(.leading, 66).opacity(0.3)
 
-            // Add City tile
+            // Add City row
             Button { showDialog = true } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: 14) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(hex: "#7C3AED"))
-                        .frame(width: 28, height: 28)
-                        .background(Color(hex: "#7C3AED").opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                        .font(.system(size: 16))
+                        .foregroundStyle(AccentColor.current)
+                        .frame(width: 36, height: 36)
+                        .background(AccentColor.current.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+
                     Text("Add City")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
+
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AccentColor.current.opacity(0.5))
+                        .frame(width: 28, height: 28)
+                        .background(AccentColor.current.opacity(0.08), in: Circle())
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -234,4 +259,25 @@ struct LocationView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
+
+    private var gpsStatusText: String {
+        if !vm.gpsStatus.isEmpty { return vm.gpsStatus }
+        switch vm.fetchState {
+        case .denied:     return "Permission denied"
+        case .failed:     return "Detection failed — tap to retry"
+        case .fetching:   return "Detecting…"
+        case .requesting: return "Requesting permission…"
+        case .done:       return "Location detected"
+        default:          return "Detect via GPS"
+        }
+    }
+
+    private var gpsStatusColor: Color {
+        switch vm.fetchState {
+        case .denied, .failed: return Color(hex: "#DC2626")
+        case .done:            return Color(hex: "#0D9488")
+        default:               return .secondary
+        }
+    }
+
 }

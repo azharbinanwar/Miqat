@@ -83,10 +83,8 @@ struct PopoverPrayerRow: View {
 struct PopoverView: View {
     @State private var madhab: Madhab  = .hanafi
     @State private var prayed          = false
-    @State private var showLocations   = false
-    @State private var activeLocation  = "London, UK"
-
-    private let savedLocations = ["London, UK", "Manchester, UK", "Birmingham, UK", "Masjid, UK"]
+    @State private var showLocations = false
+    @State private var vm            = LocationViewModel.shared
     private let currentHour = Calendar.current.component(.hour, from: Date())
 
     var body: some View {
@@ -115,7 +113,7 @@ struct PopoverView: View {
                 Text(MockPrayerData.hijriDate)
                     .font(.system(size: 10))
                     .foregroundStyle(.white.opacity(0.5))
-                Text(activeLocation)
+                Text(vm.activeCityName)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
             }
@@ -211,7 +209,7 @@ struct PopoverView: View {
                     Image(systemName: "location.fill")
                         .font(.system(size: 10))
                         .foregroundStyle(.white.opacity(0.5))
-                    Text(activeLocation)
+                    Text(vm.activeCityName)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.7))
                         .lineLimit(1)
@@ -239,23 +237,23 @@ struct PopoverView: View {
     // MARK: Location dropdown
     private var locationDropdown: some View {
         VStack(spacing: 0) {
-            ForEach(savedLocations, id: \.self) { loc in
+            ForEach(Array(vm.locations.enumerated()), id: \.element.id) { index, loc in
                 Button {
                     withAnimation(.spring(duration: 0.18)) {
-                        activeLocation = loc
-                        showLocations  = false
+                        vm.setActive(loc)
+                        showLocations = false
                     }
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: activeLocation == loc ? "location.fill" : "location")
+                        Image(systemName: vm.activeLocationId == loc.id ? "location.fill" : "location")
                             .font(.system(size: 11))
-                            .foregroundStyle(activeLocation == loc ? Color(hex: "#0D9488") : .white.opacity(0.5))
+                            .foregroundStyle(vm.activeLocationId == loc.id ? Color(hex: "#0D9488") : .white.opacity(0.5))
                             .frame(width: 16)
-                        Text(loc)
-                            .font(.system(size: 12, weight: activeLocation == loc ? .semibold : .regular))
-                            .foregroundStyle(activeLocation == loc ? .white : .white.opacity(0.65))
+                        Text(loc.city)
+                            .font(.system(size: 12, weight: vm.activeLocationId == loc.id ? .semibold : .regular))
+                            .foregroundStyle(vm.activeLocationId == loc.id ? .white : .white.opacity(0.65))
                         Spacer()
-                        if activeLocation == loc {
+                        if vm.activeLocationId == loc.id {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(Color(hex: "#0D9488"))
@@ -263,11 +261,11 @@ struct PopoverView: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 9)
-                    .background(activeLocation == loc ? Color.white.opacity(0.08) : Color.clear)
+                    .background(vm.activeLocationId == loc.id ? Color.white.opacity(0.08) : Color.clear)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                if loc != savedLocations.last {
+                if index < vm.locations.count - 1 {
                     Divider().padding(.leading, 36).opacity(0.1)
                 }
             }
