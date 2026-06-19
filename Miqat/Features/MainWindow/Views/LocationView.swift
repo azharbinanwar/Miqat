@@ -166,7 +166,7 @@ struct LocationView: View {
             HStack(spacing: 6) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(AppColor.teal)
+                    .foregroundStyle(AppColor.accentTeal)
                 Text("Add a place")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -275,7 +275,7 @@ struct LocationView: View {
     private var gpsStatusColor: Color {
         switch vm.fetchState {
         case .denied, .failed: return AppColor.alert
-        case .done:            return AppColor.teal
+        case .done:            return AppColor.accentTeal
         default:               return .secondary
         }
     }

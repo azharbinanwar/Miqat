@@ -143,7 +143,7 @@ struct LocationPage: View {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 15))
-                    .foregroundStyle(isSelected ? AppColor.teal : .white.opacity(0.75))
+                    .foregroundStyle(isSelected ? AppColor.accentTeal : .white.opacity(0.75))
                     .frame(width: 38, height: 38)
                     .background(isSelected ? .white : .white.opacity(0.12),
                                 in: RoundedRectangle(cornerRadius: 10))

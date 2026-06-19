@@ -84,7 +84,7 @@ struct SidebarView: View {
         HStack(spacing: 10) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(AppColor.teal)
+                    .fill(AppColor.accentTeal)
                     .frame(width: 36, height: 36)
                 Image(systemName: "building.columns.fill")
                     .font(.system(size: 18, weight: .semibold))
@@ -114,7 +114,7 @@ struct SidebarView: View {
         HStack(spacing: 6) {
             Image(systemName: "location.fill")
                 .font(.system(size: 11))
-                .foregroundStyle(AppColor.teal)
+                .foregroundStyle(AppColor.accentTeal)
             Text(LocationViewModel.shared.activeLocation?.city ?? "No location set")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
@@ -131,7 +131,7 @@ struct SidebarRow: View {
         HStack(spacing: 10) {
             Image(systemName: item.icon)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(isSelected ? AppColor.teal : Color.secondary)
+                .foregroundStyle(isSelected ? AppColor.accentTeal : Color.secondary)
                 .frame(width: 20, alignment: .center)
 
             Text(item.rawValue)
@@ -144,7 +144,7 @@ struct SidebarRow: View {
         .padding(.vertical, 7)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(isSelected ? AppColor.teal.opacity(0.15) : Color.clear)
+                .fill(isSelected ? AppColor.accentTeal.opacity(0.15) : Color.clear)
         )
         .padding(.horizontal, 10)
         .contentShape(Rectangle())

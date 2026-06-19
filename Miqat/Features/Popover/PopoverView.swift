@@ -44,8 +44,9 @@ struct PopoverPrayerRow: View {
     }
 
     private var rowIconColor: Color {
-        entry.isCurrent ? .white :
-        entry.status == .prayed || entry.status == .passed ? .white.opacity(0.3) : .white.opacity(0.55)
+        entry.status == .prayed || entry.status == .passed
+            ? .white.opacity(0.3)
+            : entry.referenceTime.color
     }
 
     private var rowTextColor: Color {
@@ -65,7 +66,7 @@ struct PopoverPrayerRow: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.45))
         case .current:
-            Circle().fill(countdownColor).frame(width: 6, height: 6)
+            Circle().fill(entry.referenceTime.color).frame(width: 6, height: 6)
         default:
             Circle().stroke(Color.white.opacity(0.2), lineWidth: 1).frame(width: 6, height: 6)
         }
@@ -186,7 +187,7 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             ForEach(Array(prayerVM.entries.enumerated()), id: \.element.id) { index, entry in
                 PopoverPrayerRow(entry: entry, countdown: prayerVM.countdownText)
-                if index < MockPrayerData.entries.count - 1 {
+                if index < prayerVM.entries.count - 1 {
                     Divider().padding(.leading, 46).opacity(0.08)
                 }
             }
@@ -261,7 +262,7 @@ struct PopoverView: View {
                     HStack(spacing: 10) {
                         Image(systemName: vm.activeLocationId == loc.id ? "location.fill" : "location")
                             .font(.system(size: 11))
-                            .foregroundStyle(vm.activeLocationId == loc.id ? AppColor.teal : .white.opacity(0.5))
+                            .foregroundStyle(vm.activeLocationId == loc.id ? prayerAccentColor : .white.opacity(0.5))
                             .frame(width: 16)
                         Text(loc.city)
                             .font(.system(size: 12, weight: vm.activeLocationId == loc.id ? .semibold : .regular))
@@ -270,7 +271,7 @@ struct PopoverView: View {
                         if vm.activeLocationId == loc.id {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(AppColor.teal)
+                                .foregroundStyle(prayerAccentColor)
                         }
                     }
                     .padding(.horizontal, 10)
@@ -308,35 +309,35 @@ struct PopoverView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: Colours
+    // MARK: Colours — driven by current prayer from the engine
+
+    private var activePeriod: ReferenceTime {
+        prayerVM.currentPrayer
+            ?? prayerVM.nextPrayerEntry?.referenceTime
+            ?? hourFallback
+    }
+
+    private var hourFallback: ReferenceTime {
+        switch currentHour {
+        case 3..<6:   return .fajr
+        case 6..<8:   return .sunrise
+        case 8..<13:  return .dhuhr
+        case 13..<17: return .asr
+        case 17..<20: return .maghrib
+        default:      return .isha
+        }
+    }
+
+    private var prayerAccentColor: Color { activePeriod.color }
+
+    private var timeGradient: LinearGradient {
+        LinearGradient(colors: activePeriod.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
     private var heroCountdownColor: Color {
         let mins = popoverMinutesFromCountdown(prayerVM.countdownText)
         if mins <= 20 { return AppColor.softRed }
         if mins <= 30 { return AppColor.softAmber }
         return .white
-    }
-
-    private var prayerAccentColor: Color {
-        switch currentHour {
-        case 3..<6:   return AppColor.accentPurple
-        case 6..<8:   return AppColor.asr
-        case 8..<13:  return AppColor.teal
-        case 13..<17: return AppColor.asr
-        case 17..<20: return AppColor.maghrib
-        default:      return AppColor.isha
-        }
-    }
-
-    private var timeGradient: LinearGradient {
-        let colors: [Color]
-        switch currentHour {
-        case 3..<6:   colors = [AppColor.darkNavy, AppColor.purple]
-        case 6..<8:   colors = [AppColor.burntOrange, AppColor.amber]
-        case 8..<13:  colors = [AppColor.deepTeal, AppColor.dhuhr]
-        case 13..<17: colors = [AppColor.burntOrange, AppColor.asr]
-        case 17..<20: colors = [AppColor.deepRed, AppColor.maghrib]
-        default:      colors = [AppColor.deepNavy, AppColor.darkNavy]
-        }
-        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 }

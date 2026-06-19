@@ -27,10 +27,8 @@ extension CalculationMethod {
 extension Madhab {
     var adhanMadhab: Adhan.Madhab {
         switch self {
-        case .hanafi:
-            return Adhan.Madhab(rawValue: 2) ?? Adhan.Madhab.hanafi
-        case .shafi:
-            return Adhan.Madhab(rawValue: 1) ?? Adhan.Madhab.shafi
+        case .hanafi: return .hanafi
+        case .shafi:  return .shafi
         }
     }
 }
@@ -88,9 +86,9 @@ extension ReferenceTime {
 // MARK: - Date → Gregorian UTC DateComponents
 
 extension Date {
-    var gregorianUTCComponents: DateComponents {
+    var gregorianLocalComponents: DateComponents {
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
+        cal.timeZone = .current
         return cal.dateComponents([.year, .month, .day], from: self)
     }
 }

@@ -8,7 +8,7 @@ struct NextPrayerCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(
                     LinearGradient(
-                        colors: [Color(hex: "#0D4F4A"), AppColor.teal],
+                        colors: ReferenceTime.asr.gradient,
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -40,7 +40,7 @@ struct NextPrayerCard: View {
                             Text(iPrayed ? "Prayed ✓" : "I Prayed")
                                 .font(.system(size: 13, weight: .semibold))
                         }
-                        .foregroundStyle(iPrayed ? AppColor.teal : .white)
+                        .foregroundStyle(iPrayed ? ReferenceTime.asr.color : .white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(iPrayed ? .white : .white.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))

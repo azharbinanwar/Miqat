@@ -90,7 +90,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             let mins = minutesRemaining(from: menuBarVM.countdownText)
             let warningColor: NSColor = mins <= s.redThreshold    ? NSColor(AppColor.alert) :
-                                        mins <= s.orangeThreshold ? NSColor(AppColor.amber) :
+                                        mins <= s.orangeThreshold ? NSColor(AppColor.softAmber) :
                                         .labelColor
             let range = NSRange(location: 0, length: attrStr.length)
             attrStr.addAttribute(.foregroundColor, value: warningColor, range: range)
@@ -165,7 +165,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         print("[AppDelegate] creating NSHostingView for MainWindowView")
         let settingsVM = ServiceLocator.shared.resolve(SettingsViewModel.self)
-        window.contentView = NSHostingView(rootView: MainWindowView(settingsVM: settingsVM))
+        window.contentView = NSHostingView(rootView: MainWindowView(settingsVM: settingsVM, prayerVM: menuBarVM))
         print("[AppDelegate] NSHostingView created — making key")
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

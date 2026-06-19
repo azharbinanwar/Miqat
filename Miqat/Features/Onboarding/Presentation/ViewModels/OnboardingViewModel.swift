@@ -68,7 +68,7 @@ final class OnboardingViewModel {
             colors: [AppColor.brown, AppColor.asr],
             startPoint: .topLeading, endPoint: .bottomTrailing)
         case 2: return LinearGradient(
-            colors: [AppColor.green, AppColor.teal],
+            colors: [AppColor.green, AppColor.accentTeal],
             startPoint: .topLeading, endPoint: .bottomTrailing)
         default: return LinearGradient(
             colors: [AppColor.deepTeal, AppColor.skyCyan],

@@ -220,28 +220,23 @@ struct WidgetView: View {
         .padding(.vertical, 14)
     }
 
-    // MARK: Time-of-day gradient
-    private var timeGradient: LinearGradient {
-        let hour = currentHour
-        let colors: [Color]
-        switch hour {
-        case 3..<6:   colors = [AppColor.darkNavy, AppColor.purple]  // Fajr — deep navy → purple
-        case 6..<8:   colors = [AppColor.burntOrange, AppColor.amber]  // Sunrise — burnt → gold
-        case 8..<13:  colors = [AppColor.deepTeal, AppColor.dhuhr]  // Dhuhr — teal → sky
-        case 13..<17: colors = [AppColor.burntOrange, AppColor.asr]  // Asr — amber
-        case 17..<20: colors = [AppColor.deepRed, AppColor.maghrib]  // Maghrib — deep orange → purple
-        default:      colors = [AppColor.deepNavy, AppColor.darkNavy]  // Isha — dark navy
+    // MARK: Time-of-day gradient — driven by prayer period, not raw hour
+    private var approximatePeriod: ReferenceTime {
+        switch currentHour {
+        case 3..<6:   return .fajr
+        case 6..<8:   return .sunrise
+        case 8..<13:  return .dhuhr
+        case 13..<17: return .asr
+        case 17..<20: return .maghrib
+        default:      return .isha
         }
-        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    private var timeGradient: LinearGradient {
+        LinearGradient(colors: approximatePeriod.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     private var timeAccent: Color {
-        let hour = currentHour
-        switch hour {
-        case 3..<6:  return AppColor.accentPurple
-        case 6..<8:  return AppColor.asr
-        case 8..<13: return AppColor.teal
-        default:     return AppColor.teal
-        }
+        approximatePeriod.color
     }
 }

@@ -3,23 +3,23 @@ import SwiftUI
 struct BottomStatsBar: View {
     var body: some View {
         HStack(spacing: 0) {
-            statItem(icon: "flame.fill", iconColor: AppColor.amber,
+            statItem(icon: "flame.fill", iconColor: ReferenceTime.sunrise.color,
                      label: "Streak", value: "\(MockPrayerData.streak) days")
 
             Divider().frame(height: 28)
 
-            statItem(icon: "checkmark.circle.fill", iconColor: AppColor.teal,
+            statItem(icon: "checkmark.circle.fill", iconColor: ReferenceTime.fajr.color,
                      label: "Today", value: "\(MockPrayerData.todayPrayed)/\(MockPrayerData.todayTotal) prayed",
                      valueColor: AppColor.alert)
 
             Divider().frame(height: 28)
 
-            statItem(icon: "sunrise.fill", iconColor: AppColor.amber,
+            statItem(icon: "sunrise.fill", iconColor: ReferenceTime.sunrise.color,
                      label: "Sunrise", value: MockPrayerData.sunrise)
 
             Divider().frame(height: 28)
 
-            statItem(icon: "sunset.fill", iconColor: AppColor.amber,
+            statItem(icon: "sunset.fill", iconColor: ReferenceTime.maghrib.color,
                      label: "Sunset", value: MockPrayerData.sunset)
         }
         .padding(.horizontal, 20)

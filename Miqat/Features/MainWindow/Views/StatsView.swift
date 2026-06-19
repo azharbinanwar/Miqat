@@ -108,7 +108,7 @@ struct DailyCompletionChart: View {
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(.white)
                                 .frame(width: 22, height: 22)
-                                .background(AppColor.teal, in: Circle())
+                                .background(AppColor.accentTeal, in: Circle())
                         } else {
                             Text(bar.day)
                                 .font(.system(size: 10))
@@ -123,8 +123,8 @@ struct DailyCompletionChart: View {
     }
 
     private func barColor(_ bar: DailyBar) -> Color {
-        bar.percent >= 1.0 ? AppColor.teal :
-        bar.percent >= 0.6 ? AppColor.amber : AppColor.alert
+        bar.percent >= 1.0 ? AppColor.accentTeal :
+        bar.percent >= 0.6 ? AppColor.accentGold : AppColor.alert
     }
 }
 
@@ -164,7 +164,7 @@ struct PrayerStatRow: View {
             HStack(spacing: 3) {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 10))
-                    .foregroundStyle(AppColor.amber)
+                    .foregroundStyle(AppColor.accentGold)
                 Text("\(stat.streak)d")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -176,8 +176,8 @@ struct PrayerStatRow: View {
     }
 
     private var barColor: Color {
-        stat.percent >= 0.8 ? AppColor.teal :
-        stat.percent >= 0.5 ? AppColor.amber : AppColor.alert
+        stat.percent >= 0.8 ? AppColor.accentTeal :
+        stat.percent >= 0.5 ? AppColor.accentGold : AppColor.alert
     }
 }
 
@@ -193,9 +193,9 @@ struct StatsView: View {
     }
 
     private let summaryCards: [(String, String, String, Color)] = [
-        ("flame.fill",            "12 days",  "Current Streak", AppColor.amber),
-        ("star.fill",             "21 days",  "Best Streak",    AppColor.amber),
-        ("checkmark.circle.fill", "31/35",    "This Week",      AppColor.teal),
+        ("flame.fill",            "12 days",  "Current Streak", AppColor.accentGold),
+        ("star.fill",             "21 days",  "Best Streak",    AppColor.accentGold),
+        ("checkmark.circle.fill", "31/35",    "This Week",      AppColor.accentTeal),
         ("percent",               "88%",      "Completion",     AppColor.accentPurple),
     ]
 
@@ -266,7 +266,7 @@ struct StatsView: View {
                             .foregroundStyle(period == p ? .white : .secondary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 6)
-                            .background(period == p ? AppColor.teal : Color.clear,
+                            .background(period == p ? AppColor.accentTeal : Color.clear,
                                         in: RoundedRectangle(cornerRadius: 7))
                     }
                     .buttonStyle(.plain)

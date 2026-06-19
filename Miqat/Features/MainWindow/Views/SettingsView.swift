@@ -205,9 +205,9 @@ struct AdjustmentRow: View {
     }
 
     private var valueColor: Color {
-        if !showSign { return AppColor.teal }
+        if !showSign { return AppColor.accentTeal }
         if value == 0 { return .secondary }
-        return value > 0 ? AppColor.teal : AppColor.alert
+        return value > 0 ? AppColor.accentTeal : AppColor.alert
     }
 }
 
@@ -282,7 +282,7 @@ struct SettingsView: View {
 
             SettingsSegmentRow(
                 icon: "person.fill",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Madhab",
                 selection: vm.binding(for: \.madhab)
             )
@@ -329,7 +329,7 @@ struct SettingsView: View {
 
             Divider().padding(.horizontal, 16).opacity(0.4)
 
-            AdjustmentRow(label: "Hijri date", icon: "calendar",     iconColor: AppColor.teal,
+            AdjustmentRow(label: "Hijri date", icon: "calendar",     iconColor: AppColor.accentTeal,
                           value: vm.binding(for: \.hijriAdjustment), range: -3...3)
                 .padding(.bottom, 2)
         }
@@ -337,12 +337,12 @@ struct SettingsView: View {
 
     // MARK: Menu Bar card
     private var menuBarCard: some View {
-        settingsCard(title: "Menu Bar", icon: "menubar.rectangle", iconColor: AppColor.teal) {
+        settingsCard(title: "Menu Bar", icon: "menubar.rectangle", iconColor: AppColor.accentTeal) {
 
             // What to show in title
             SettingsSegmentRow(
                 icon: "timer",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Display",
                 selection: vm.binding(for: \.menuDisplay)
             )
@@ -351,7 +351,7 @@ struct SettingsView: View {
 
             SettingsToggleRow(
                 icon: "textformat",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Show prayer name",
                 subtitle: "e.g.  Asr  42:18",
                 isOn: vm.binding(for: \.menuShowPrayerName)
@@ -361,7 +361,7 @@ struct SettingsView: View {
 
             SettingsToggleRow(
                 icon: "app.fill",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Show app icon",
                 subtitle: "Moon icon next to the text",
                 isOn: vm.binding(for: \.menuShowIcon)
@@ -369,7 +369,7 @@ struct SettingsView: View {
 
             SettingsToggleRow(
                 icon: "number",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Show seconds",
                 subtitle: "42:18 vs 42:18:00 in countdown",
                 isOn: vm.binding(for: \.menuShowSeconds)
@@ -406,7 +406,7 @@ struct SettingsView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(AppColor.amber)
+                    .foregroundStyle(AppColor.accentGold)
                 Text("Colour Warnings")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -422,7 +422,7 @@ struct SettingsView: View {
             AdjustmentRow(
                 label: "Orange alert",
                 icon: "circle.fill",
-                iconColor: AppColor.amber,
+                iconColor: AppColor.accentGold,
                 value: vm.binding(for: \.orangeThreshold),
                 range: 10...60,
                 step: 5,
@@ -446,10 +446,10 @@ struct SettingsView: View {
 
     // MARK: Appearance card
     private var appearanceCard: some View {
-        settingsCard(title: "Appearance", icon: "paintbrush.fill", iconColor: AppColor.amber) {
+        settingsCard(title: "Appearance", icon: "paintbrush.fill", iconColor: AppColor.accentGold) {
             SettingsSegmentRow(
                 icon: "circle.lefthalf.filled",
-                iconColor: AppColor.amber,
+                iconColor: AppColor.accentGold,
                 title: "Theme",
                 selection: vm.binding(for: \.appTheme)
             )
@@ -460,9 +460,9 @@ struct SettingsView: View {
             HStack(spacing: 14) {
                 Image(systemName: "paintpalette.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(AppColor.amber)
+                    .foregroundStyle(AppColor.accentGold)
                     .frame(width: 28, height: 28)
-                    .background(AppColor.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                    .background(AppColor.accentGold.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
                 Text("Accent colour")
                     .font(.system(size: 13, weight: .medium))
@@ -500,10 +500,10 @@ struct SettingsView: View {
 
     // MARK: Startup card
     private var startupCard: some View {
-        settingsCard(title: "Startup", icon: "power", iconColor: AppColor.teal) {
+        settingsCard(title: "Startup", icon: "power", iconColor: AppColor.accentTeal) {
             SettingsToggleRow(
                 icon: "power",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Launch at login",
                 subtitle: "Start Miqat automatically when you log in",
                 isOn: vm.binding(for: \.launchAtLogin)
@@ -513,7 +513,7 @@ struct SettingsView: View {
 
             SettingsToggleRow(
                 icon: "macwindow",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Show widget on launch",
                 subtitle: "Floating prayer times panel on desktop",
                 isOn: vm.binding(for: \.showWidgetOnLaunch)
@@ -523,7 +523,7 @@ struct SettingsView: View {
 
             SettingsToggleRow(
                 icon: "rectangle.stack.fill",
-                iconColor: AppColor.teal,
+                iconColor: AppColor.accentTeal,
                 title: "Open main window on launch",
                 subtitle: "Show full app window at startup",
                 isOn: vm.binding(for: \.openWindowOnLaunch)
@@ -537,9 +537,9 @@ struct SettingsView: View {
             HStack(spacing: 14) {
                 Image(systemName: "app.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(AppColor.teal)
+                    .foregroundStyle(AppColor.accentTeal)
                     .frame(width: 28, height: 28)
-                    .background(AppColor.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                    .background(AppColor.accentTeal.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Miqat")
@@ -553,7 +553,7 @@ struct SettingsView: View {
 
                 Text("Up to date")
                     .font(.system(size: 11))
-                    .foregroundStyle(AppColor.teal)
+                    .foregroundStyle(AppColor.accentTeal)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 11)
@@ -562,7 +562,7 @@ struct SettingsView: View {
 
             SettingsActionRow(
                 icon: "star.fill",
-                iconColor: AppColor.amber,
+                iconColor: AppColor.accentGold,
                 title: "Rate on App Store",
                 subtitle: "Enjoying Miqat? Leave a review"
             )

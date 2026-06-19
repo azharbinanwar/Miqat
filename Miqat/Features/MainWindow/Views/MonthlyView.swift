@@ -3,35 +3,22 @@ import SwiftUI
 // MARK: - Data Models
 
 struct DayEntry: Identifiable {
-    let id = UUID()
-    let date: Int
-    let isToday: Bool
+    let id      = UUID()
+    let day     : Int
+    let fullDate: Date
+    let isToday : Bool
     let isCurrentMonth: Bool
-    let prayerDots: [DotStatus]
-}
-
-enum DotStatus {
-    case prayed, missed, upcoming, none
-    var color: Color {
-        switch self {
-        case .prayed:   return AppColor.teal
-        case .missed:   return AppColor.alert
-        case .upcoming: return AppColor.upcoming
-        case .none:     return Color.clear
-        }
-    }
 }
 
 struct MonthlyPrayerItem: Identifiable {
-    let id = UUID()
+    let id           = UUID()
     let referenceTime: ReferenceTime
-    let time: String
-    let status: PrayerStatus
+    let time         : String
+    let status       : PrayerStatus
 }
 
-// MARK: - Generic Tiles
+// MARK: - Prayer Tile
 
-// One generic tile for every prayer row in the detail panel
 struct MonthlyPrayerTile: View {
     let item: MonthlyPrayerItem
 
@@ -63,46 +50,55 @@ struct MonthlyPrayerTile: View {
         case .prayed:
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13))
-                .foregroundStyle(AppColor.teal)
+                .foregroundStyle(item.referenceTime.color)
         case .passed:
-            Image(systemName: "minus.circle")
+            Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 13))
-                .foregroundStyle(.tertiary)
-        default:
-            Circle()
-                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                .frame(width: 13, height: 13)
+                .foregroundStyle(.secondary.opacity(0.5))
+        case .current:
+            Circle().fill(item.referenceTime.color).frame(width: 7, height: 7)
+        case .alert:
+            Image(systemName: "bell.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(AppColor.alert)
+        case .upcoming:
+            Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 1).frame(width: 7, height: 7)
         }
     }
 }
 
-// One generic tile for every day cell in the calendar grid
+// MARK: - Day Cell
+
 struct DayCell: View {
-    let day: DayEntry
+    let day       : DayEntry
     let isSelected: Bool
+
+    private let prayerColors: [Color] = ReferenceTime.allCases
+        .filter { $0.isPrayer }
+        .map(\.color)
 
     var body: some View {
         VStack(spacing: 5) {
-            Text("\(day.date)")
+            Text("\(day.day)")
                 .font(.system(size: 13, weight: day.isToday ? .bold : .regular))
                 .foregroundStyle(
                     !day.isCurrentMonth ? Color.secondary.opacity(0.3) :
                     isSelected          ? Color.white :
-                    day.isToday         ? AppColor.teal : Color.primary
+                    day.isToday         ? AppColor.accentTeal : Color.primary
                 )
                 .frame(width: 28, height: 28)
                 .background {
                     if isSelected {
-                        Circle().fill(AppColor.teal)
+                        Circle().fill(AppColor.accentTeal)
                     } else if day.isToday {
-                        Circle().stroke(AppColor.teal, lineWidth: 1.5)
+                        Circle().stroke(AppColor.accentTeal, lineWidth: 1.5)
                     }
                 }
 
             HStack(spacing: 2) {
-                ForEach(Array(day.prayerDots.enumerated()), id: \.offset) { _, dot in
+                ForEach(Array(prayerColors.enumerated()), id: \.offset) { _, color in
                     Circle()
-                        .fill(day.isCurrentMonth ? dot.color : Color.clear)
+                        .fill(day.isCurrentMonth ? color.opacity(day.isToday ? 0.9 : 0.45) : Color.clear)
                         .frame(width: 4, height: 4)
                 }
             }
@@ -116,32 +112,27 @@ struct DayCell: View {
 // MARK: - Monthly View
 
 struct MonthlyView: View {
-    @State private var selectedDay: DayEntry? = nil
+    let prayerVM: PrayerTimeViewModel
 
-    private let days    = MonthlyView.mockDays()
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+    @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
+    @State private var selectedDate  : Date? = Date()
+    @State private var selectedItems : [MonthlyPrayerItem] = []
+
+    private let columns  = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-    private let mockPrayerItems: [MonthlyPrayerItem] = [
-        MonthlyPrayerItem(referenceTime: .fajr,    time: "4:18 AM",  status: .prayed),
-        MonthlyPrayerItem(referenceTime: .sunrise, time: "5:47 AM",  status: .passed),
-        MonthlyPrayerItem(referenceTime: .dhuhr,   time: "12:08 PM", status: .prayed),
-        MonthlyPrayerItem(referenceTime: .asr,     time: "4:42 PM",  status: .upcoming),
-        MonthlyPrayerItem(referenceTime: .maghrib, time: "7:21 PM",  status: .upcoming),
-        MonthlyPrayerItem(referenceTime: .isha,    time: "8:54 PM",  status: .upcoming),
-    ]
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
             calendarPanel
             Divider()
-            detailPanel
-                .frame(width: 260)
+            detailPanel.frame(width: 260)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { loadPrayerItems(for: selectedDate ?? Date()) }
     }
 
     // MARK: Calendar panel
+
     private var calendarPanel: some View {
         VStack(spacing: 0) {
             monthHeader
@@ -150,12 +141,15 @@ struct MonthlyView: View {
             Divider().opacity(0.4)
 
             LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(days) { day in
-                    DayCell(day: day, isSelected: selectedDay?.id == day.id)
-                        .onTapGesture {
-                            guard day.isCurrentMonth else { return }
-                            withAnimation(.easeInOut(duration: 0.15)) { selectedDay = day }
-                        }
+                ForEach(buildDays(for: displayedMonth)) { day in
+                    DayCell(day: day, isSelected: selectedDate.map {
+                        Calendar.current.isDate($0, inSameDayAs: day.fullDate)
+                    } ?? false)
+                    .onTapGesture {
+                        guard day.isCurrentMonth else { return }
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedDate = day.fullDate }
+                        loadPrayerItems(for: day.fullDate)
+                    }
                 }
             }
             .padding(12)
@@ -167,7 +161,9 @@ struct MonthlyView: View {
 
     private var monthHeader: some View {
         HStack {
-            Button { } label: {
+            Button {
+                displayedMonth = Calendar.current.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+            } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -177,10 +173,12 @@ struct MonthlyView: View {
             .buttonStyle(.plain)
 
             Spacer()
-            Text("June 2026").font(.system(size: 16, weight: .bold))
+            Text(monthTitle).font(.system(size: 16, weight: .bold))
             Spacer()
 
-            Button { } label: {
+            Button {
+                displayedMonth = Calendar.current.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+            } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -207,12 +205,13 @@ struct MonthlyView: View {
     }
 
     // MARK: Detail panel
+
     private var detailPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(selectedDay != nil ? "June \(selectedDay!.date), 2026" : "Select a day")
+                Text(selectedDate != nil ? gregorianDate : "Select a day")
                     .font(.system(size: 15, weight: .bold))
-                Text(selectedDay != nil ? "21 Dhul Hijjah 1447" : "")
+                Text(selectedDate != nil ? hijriDate : "")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -221,11 +220,11 @@ struct MonthlyView: View {
 
             Divider().opacity(0.4)
 
-            if selectedDay != nil {
+            if !selectedItems.isEmpty {
                 VStack(spacing: 0) {
-                    ForEach(Array(mockPrayerItems.enumerated()), id: \.element.id) { index, item in
+                    ForEach(Array(selectedItems.enumerated()), id: \.element.id) { index, item in
                         MonthlyPrayerTile(item: item)
-                        if index < mockPrayerItems.count - 1 {
+                        if index < selectedItems.count - 1 {
                             Divider().padding(.leading, 52).opacity(0.3)
                         }
                     }
@@ -248,23 +247,96 @@ struct MonthlyView: View {
         .background(.ultraThinMaterial)
     }
 
-    // MARK: Mock data
-    static func mockDays() -> [DayEntry] {
+    // MARK: Helpers
+
+    private var monthTitle: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        return f.string(from: displayedMonth)
+    }
+
+    private var gregorianDate: String {
+        guard let date = selectedDate else { return "" }
+        let f = DateFormatter()
+        f.dateFormat = "MMMM d, yyyy"
+        return f.string(from: date)
+    }
+
+    private var hijriDate: String {
+        guard let date = selectedDate else { return "" }
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .islamicUmmAlQura)
+        f.dateFormat = "d MMMM yyyy"
+        return f.string(from: date)
+    }
+
+    private func buildDays(for month: Date) -> [DayEntry] {
+        let cal = Calendar.current
+        guard let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: month)),
+              let range = cal.range(of: .day, in: .month, for: month)
+        else { return [] }
+
+        let firstWeekday = cal.component(.weekday, from: monthStart) - 1
         var days: [DayEntry] = []
-        for d in [29, 30, 31] {
-            days.append(DayEntry(date: d, isToday: false, isCurrentMonth: false,
-                                 prayerDots: [.none, .none, .none, .none, .none]))
+
+        // Leading days from previous month
+        for offset in (1...max(1, firstWeekday)).reversed() {
+            if firstWeekday == 0 { break }
+            let date = cal.date(byAdding: .day, value: -offset, to: monthStart)!
+            days.append(DayEntry(day: cal.component(.day, from: date), fullDate: date,
+                                 isToday: false, isCurrentMonth: false))
         }
-        for d in 1...30 {
-            let isPast  = d < 18
-            let isToday = d == 18
-            let dots: [DotStatus] = isPast
-                ? [.prayed, .prayed, d % 4 == 0 ? .missed : .prayed, d % 6 == 0 ? .missed : .prayed, .prayed]
-                : isToday
-                    ? [.prayed, .prayed, .upcoming, .upcoming, .upcoming]
-                    : [.none, .none, .none, .none, .none]
-            days.append(DayEntry(date: d, isToday: isToday, isCurrentMonth: true, prayerDots: dots))
+
+        // Current month
+        for dayNum in range {
+            let date = cal.date(byAdding: .day, value: dayNum - 1, to: monthStart)!
+            days.append(DayEntry(day: dayNum, fullDate: date,
+                                 isToday: cal.isDateInToday(date), isCurrentMonth: true))
         }
+
+        // Trailing days
+        let trailing = (7 - days.count % 7) % 7
+        if trailing > 0, let lastDay = days.last {
+            for offset in 1...trailing {
+                let date = cal.date(byAdding: .day, value: offset, to: lastDay.fullDate)!
+                days.append(DayEntry(day: cal.component(.day, from: date), fullDate: date,
+                                     isToday: false, isCurrentMonth: false))
+            }
+        }
+
         return days
+    }
+
+    private func loadPrayerItems(for date: Date) {
+        let repo     = ServiceLocator.shared.resolve(LocationRepository.self)
+        let location = repo.getActiveLocation() ?? Location.presets[0]
+        let settings = ServiceLocator.shared.resolve(SettingsViewModel.self).settings.prayerCalculationSettings
+        let cal      = Calendar.current
+        let isToday  = cal.isDateInToday(date)
+        let isPast   = date < cal.startOfDay(for: Date()) && !isToday
+
+        let entries = PrayerEngineService().calculateTimes(for: date, location: location, settings: settings)
+
+        selectedItems = entries.enumerated().map { idx, entry in
+            let status: PrayerStatus
+            if isToday {
+                status = entry.status
+            } else if isPast {
+                // Deterministic pseudo-random: looks realistic without CoreData
+                status = (idx + cal.component(.day, from: date)) % 5 == 0 ? .passed : .prayed
+            } else {
+                status = .upcoming
+            }
+            return MonthlyPrayerItem(referenceTime: entry.referenceTime, time: entry.time, status: status)
+        }
+    }
+}
+
+// MARK: - Calendar Extension
+
+private extension Calendar {
+    func startOfMonth(for date: Date) -> Date {
+        let comps = dateComponents([.year, .month], from: date)
+        return self.date(from: comps) ?? date
     }
 }

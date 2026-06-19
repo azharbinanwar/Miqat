@@ -38,7 +38,7 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
         )
         params.rounding = settings.rounding.adhanRounding
 
-        let dateComponents = date.gregorianUTCComponents
+        let dateComponents = date.gregorianLocalComponents
         guard let prayerTimes = PrayerTimes(coordinates: coordinates,
                                             date: dateComponents,
                                             calculationParameters: params)
@@ -60,22 +60,15 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
                 if rawDate < date { return .passed }
                 return .upcoming
             }()
+            let idx = ReferenceTime.allCases.firstIndex(of: ref) ?? 0
             return PrayerEntry(
-                id: UUID(),
+                id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", idx))")!,
                 referenceTime: ref,
                 time: formatter.string(from: rawDate),
                 date: rawDate,
                 madhab: settings.madhab.rawValue,
                 status: status
             )
-        }
-
-        // Mark remaining upcoming as .current if one passed recently
-        if let currentAdhanPrayer = prayerTimes.currentPrayer(at: date),
-           let currentRef = ReferenceTime(adhanPrayer: currentAdhanPrayer) {
-            for i in entries.indices where entries[i].referenceTime == currentRef {
-                entries[i].status = PrayerStatus.current
-            }
         }
 
         return entries
@@ -97,8 +90,7 @@ private extension PrayerEngineService {
         let fmt = DateFormatter()
         fmt.timeStyle = .short
         fmt.dateStyle = .none
-        // Use the timezone that the baseDate carries, else system
-        if baseDate != baseDate { _ = () } // silence unused warning; placeholder
+        fmt.timeZone = .current
         return fmt
     }
 }

@@ -42,15 +42,15 @@ struct TrackerCellTile: View {
         .frame(width: 44, height: 44)
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(isToday ? AppColor.teal.opacity(0.4) : Color.clear, lineWidth: 1.5)
+                .stroke(isToday ? AppColor.accentTeal.opacity(0.4) : Color.clear, lineWidth: 1.5)
         )
     }
 
     private var background: Color {
         switch status {
-        case .prayed:   return AppColor.teal.opacity(0.15)
+        case .prayed:   return AppColor.accentTeal.opacity(0.15)
         case .missed:   return AppColor.alert.opacity(0.12)
-        case .upcoming: return AppColor.amber.opacity(0.1)
+        case .upcoming: return AppColor.accentGold.opacity(0.1)
         case .future:   return Color.primary.opacity(0.04)
         }
     }
@@ -66,9 +66,9 @@ struct TrackerCellTile: View {
 
     private var iconColor: Color {
         switch status {
-        case .prayed:   return AppColor.teal
+        case .prayed:   return AppColor.accentTeal
         case .missed:   return AppColor.alert
-        case .upcoming: return AppColor.amber
+        case .upcoming: return AppColor.accentGold
         case .future:   return Color.primary.opacity(0.2)
         }
     }
@@ -88,11 +88,11 @@ struct TrackerDayHeader: View {
                 .tracking(0.5)
             Text("\(date)")
                 .font(.system(size: 13, weight: isToday ? .bold : .medium))
-                .foregroundStyle(isToday ? AppColor.teal : .primary)
+                .foregroundStyle(isToday ? AppColor.accentTeal : .primary)
                 .frame(width: 26, height: 26)
                 .background {
                     if isToday {
-                        Circle().stroke(AppColor.teal, lineWidth: 1.5)
+                        Circle().stroke(AppColor.accentTeal, lineWidth: 1.5)
                     }
                 }
         }
@@ -181,7 +181,7 @@ struct TrackerView: View {
                             .foregroundStyle(viewMode == mode ? .white : .secondary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 6)
-                            .background(viewMode == mode ? AppColor.teal : Color.clear,
+                            .background(viewMode == mode ? AppColor.accentTeal : Color.clear,
                                         in: RoundedRectangle(cornerRadius: 7))
                     }
                     .buttonStyle(.plain)
@@ -220,7 +220,7 @@ struct TrackerView: View {
                         ForEach(monthlyColumns) { col in
                             Text("\(col.date)")
                                 .font(.system(size: 10, weight: col.isToday ? .bold : .regular))
-                                .foregroundStyle(col.isToday ? AppColor.teal : .secondary)
+                                .foregroundStyle(col.isToday ? AppColor.accentTeal : .secondary)
                                 .frame(width: 28)
                         }
                     }
@@ -306,13 +306,13 @@ struct TrackerView: View {
     // MARK: Summary cards
     private var weekSummaryCards: some View {
         HStack(spacing: 12) {
-            SummaryCard(icon: "flame.fill",           iconColor: AppColor.amber,
+            SummaryCard(icon: "flame.fill",           iconColor: AppColor.accentGold,
                         label: "Current Streak",       value: "12 days")
-            SummaryCard(icon: "checkmark.circle.fill", iconColor: AppColor.teal,
+            SummaryCard(icon: "checkmark.circle.fill", iconColor: AppColor.accentTeal,
                         label: "This Week",            value: "31/35")
             SummaryCard(icon: "percent",               iconColor: AppColor.accentPurple,
                         label: "Completion",           value: "88%")
-            SummaryCard(icon: "star.fill",             iconColor: AppColor.amber,
+            SummaryCard(icon: "star.fill",             iconColor: AppColor.accentGold,
                         label: "Best Streak",          value: "21 days")
         }
     }
@@ -409,8 +409,8 @@ struct PrayerCompletionBar: View {
     }
 
     private var barColor: Color {
-        percent >= 0.8 ? AppColor.teal :
-        percent >= 0.5 ? AppColor.amber : AppColor.alert
+        percent >= 0.8 ? AppColor.accentTeal :
+        percent >= 0.5 ? AppColor.accentGold : AppColor.alert
     }
 }
 

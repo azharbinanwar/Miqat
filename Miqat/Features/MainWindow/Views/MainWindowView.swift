@@ -2,7 +2,8 @@ import SwiftUI
 
 struct MainWindowView: View {
     @State private var selectedItem: SidebarItem = .today
-    var settingsVM: SettingsViewModel
+    let settingsVM: SettingsViewModel
+    let prayerVM: PrayerTimeViewModel
 
     var body: some View {
         HStack(spacing: 0) {
@@ -15,9 +16,9 @@ struct MainWindowView: View {
 
                 switch selectedItem {
                 case .today:
-                    TodayView(vm: settingsVM)
+                    TodayView(vm: settingsVM, prayerVM: prayerVM)
                 case .monthly:
-                    MonthlyView()
+                    MonthlyView(prayerVM: prayerVM)
                 case .tracker:
                     TrackerView()
                 case .stats:
@@ -65,13 +66,26 @@ struct MainWindowView: View {
 struct HeaderBar: View {
     let vm: SettingsViewModel
 
+    private var fullDate: String {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, d MMMM yyyy"
+        return f.string(from: Date())
+    }
+
+    private var hijriDate: String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .islamicUmmAlQura)
+        f.dateFormat = "d MMMM yyyy"
+        return f.string(from: Date())
+    }
+
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(MockPrayerData.hijriDate)
+                Text(hijriDate)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                Text(MockPrayerData.fullDate)
+                Text(fullDate)
                     .font(.system(size: 18, weight: .bold))
             }
             Spacer()
@@ -94,7 +108,7 @@ struct HeaderBar: View {
                 .foregroundStyle(selected ? .white : .secondary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
-                .background(selected ? AppColor.teal : Color.clear,
+                .background(selected ? AppColor.accentTeal : Color.clear,
                             in: RoundedRectangle(cornerRadius: 7))
                 .animation(.spring(duration: 0.2), value: selected)
         }
@@ -103,6 +117,6 @@ struct HeaderBar: View {
 }
 
 #Preview {
-    MainWindowView(settingsVM: SettingsViewModel())
+    MainWindowView(settingsVM: SettingsViewModel(), prayerVM: PrayerTimeViewModel())
         .preferredColorScheme(.dark)
 }

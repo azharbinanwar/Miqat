@@ -48,4 +48,15 @@ enum ReferenceTime: String, CaseIterable, Identifiable, Codable {
     }
 
     var isPrayer: Bool { self != .sunrise }
+
+    var gradient: [Color] {
+        switch self {
+        case .fajr:    return [AppColor.deepNavy,    color]
+        case .sunrise: return [AppColor.burntOrange, color]
+        case .dhuhr:   return [AppColor.deepTeal,    color]
+        case .asr:     return [AppColor.burntOrange, color]
+        case .maghrib: return [AppColor.deepRed,     color]
+        case .isha:    return [AppColor.deepNavy,    color]
+        }
+    }
 }
