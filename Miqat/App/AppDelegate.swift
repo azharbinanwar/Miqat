@@ -37,6 +37,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         repo.seedIfEmpty()
 
         menuBarVM = PrayerTimeViewModel()
+        menuBarVM.update(settings: settingsVM.settings.prayerCalculationSettings)
         if let location = repo.getActiveLocation() {
             menuBarVM.load(location: location)
         }

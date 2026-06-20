@@ -44,6 +44,19 @@ struct PrayerEntry: Identifiable, Codable {
 }
 
 extension PrayerEntry {
+    var timeStatus: PrayerTimeStatus {
+        if isCurrent || status == .current { return .current }
+        if isAlert   || status == .alert   { return .soon }
+        if status == .passed               { return .passed }
+        return .upcoming
+    }
+
+    var trackerStatus: PrayerTrackerStatus {
+        status == .prayed ? .prayed : .pending
+    }
+}
+
+extension PrayerEntry {
     static func mock(
         referenceTime: ReferenceTime,
         time: String,

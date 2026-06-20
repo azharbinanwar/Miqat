@@ -9,6 +9,7 @@ final class PrayerTimeViewModel {
     private var location: Location?
     private var settings: PrayerCalculationSettings
     private var timer: Timer?
+    private var tomorrowFajr: PrayerEntry?
     private var lastMinute = -1
     private var locationObserver: NSObjectProtocol?
     private var settingsObserver: NSObjectProtocol?
@@ -74,14 +75,17 @@ final class PrayerTimeViewModel {
         state = .loading
         let result = service.calculateTimes(for: date, location: location, settings: settings)
         state = .success(result)
+
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: date) ?? date
+        let tomorrowEntries = service.calculateTimes(for: tomorrow, location: location, settings: settings)
+        tomorrowFajr = tomorrowEntries.first(where: { $0.referenceTime == .fajr })
     }
 
     func reloadToday() {
         let repo = ServiceLocator.shared.resolve(LocationRepository.self)
         let freshLocation = repo.getActiveLocation() ?? location ?? Location.presets[0]
         location = freshLocation
-
-        load(location: freshLocation)
+        load(for: Date(), location: freshLocation)
     }
 
     // MARK: - Queries
@@ -96,7 +100,7 @@ final class PrayerTimeViewModel {
     }
 
     var nextPrayerEntry: PrayerEntry? {
-        service.nextPrayer(from: entries, at: liveNow)
+        service.nextPrayer(from: entries, at: liveNow) ?? tomorrowFajr
     }
 
     var countdownText: String {

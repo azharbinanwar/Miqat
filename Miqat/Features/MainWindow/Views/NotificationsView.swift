@@ -2,20 +2,20 @@ import SwiftUI
 
 // MARK: - Data
 
-enum AzanSound: String, CaseIterable {
-    case mecca   = "Mecca"
-    case medina  = "Medina"
-    case default_ = "Default"
-}
-
 struct PrayerNotifConfig: Identifiable {
     let id = UUID()
     let referenceTime: ReferenceTime
     var enabled: Bool
-    var reminderMinutes: Int
-    var secondReminder: Bool
-    var sound: AzanSound
-    var volume: Double             // 0.0 – 1.0
+    var xMinutes: Int        // 20–60, reminder before prayer
+    var atPrayerTime: Bool   // alert at exact start
+    var zEnabled: Bool       // jamaat reminder toggle
+    var zMinutes: Int        // 5–60, after prayer start
+    var sound: AppSound
+    var customSoundURL: URL?
+
+    var soundDisplayName: String {
+        sound == .custom ? (customSoundURL?.lastPathComponent ?? "Custom") : sound.displayName
+    }
 }
 
 // MARK: - Generic Tiles
@@ -23,219 +23,237 @@ struct PrayerNotifConfig: Identifiable {
 // One generic accordion row per prayer
 struct NotifPrayerRow: View {
     @Binding var config: PrayerNotifConfig
-    @State private var expanded  = false
-    @State private var isPlaying = false
-
-    private let minuteOptions = [5, 10, 15, 20, 30, 45, 60]
+    @State private var showSoundPicker = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Collapsed header — always visible
-            Button { withAnimation(.spring(duration: 0.22)) { expanded.toggle() } } label: {
-                HStack(spacing: 14) {
-                    Image(systemName: config.referenceTime.icon)
-                        .font(.system(size: 14))
-                        .foregroundStyle(config.enabled ? config.referenceTime.color : .secondary.opacity(0.35))
-                        .frame(width: 20)
+        NotifAccordionRow(
+            icon: config.referenceTime.icon,
+            iconColor: config.referenceTime.color,
+            title: config.referenceTime.rawValue,
+            subtitle: summaryText,
+            enabled: $config.enabled
+        ) {
+            AdjustmentRow(
+                label: "Remind me before",
+                icon: "bell.fill",
+                iconColor: config.referenceTime.color,
+                value: $config.xMinutes,
+                range: 20...60, step: 5, unit: "min", showSign: false
+            )
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(config.referenceTime.rawValue)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(config.enabled ? .primary : .secondary)
+            Divider().padding(.horizontal, 32).opacity(0.25)
 
-                        if config.enabled {
-                            Text(summaryText)
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+            NotifToggleRow(
+                icon: "bell.badge.fill",
+                iconColor: config.referenceTime.color,
+                label: "Alert at prayer time",
+                isOn: $config.atPrayerTime
+            )
 
-                    Spacer()
+            Divider().padding(.horizontal, 32).opacity(0.25)
 
-                    if config.enabled {
-                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.tertiary)
-                            .padding(.trailing, 4)
-                    }
+            NotifToggleRow(
+                icon: "figure.walk",
+                iconColor: AppColor.accentGold,
+                label: "Jamaat reminder",
+                isOn: $config.zEnabled
+            )
 
-                    Toggle("", isOn: $config.enabled)
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                        .tint(config.referenceTime.color)
-                        .onChange(of: config.enabled) { _, on in
-                            if !on { withAnimation { expanded = false } }
-                        }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!config.enabled)
-
-            // Expanded detail panel
-            if expanded && config.enabled {
-                VStack(spacing: 0) {
-                    Divider().padding(.horizontal, 16).opacity(0.3)
-
-                    // Reminder time
-                    HStack(spacing: 12) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
-                            .frame(width: 20)
-
-                        Text("Remind me")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        // Minute picker
-                        HStack(spacing: 4) {
-                            ForEach(minuteOptions, id: \.self) { min in
-                                Button {
-                                    withAnimation(.spring(duration: 0.15)) {
-                                        config.reminderMinutes = min
-                                    }
-                                } label: {
-                                    Text("\(min)m")
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundStyle(config.reminderMinutes == min ? .white : .secondary)
-                                        .padding(.horizontal, 7)
-                                        .padding(.vertical, 5)
-                                        .background(
-                                            config.reminderMinutes == min
-                                                ? config.referenceTime.color
-                                                : Color(NSColor.controlBackgroundColor),
-                                            in: RoundedRectangle(cornerRadius: 6)
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-
-                    Divider().padding(.horizontal, 32).opacity(0.25)
-
-                    // Second reminder toggle
-                    HStack(spacing: 12) {
-                        Image(systemName: "bell.badge.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
-                            .frame(width: 20)
-
-                        Text("Also alert at prayer time")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Toggle("", isOn: $config.secondReminder)
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-                            .tint(config.referenceTime.color)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-
-                    Divider().padding(.horizontal, 32).opacity(0.25)
-
-                    // Sound picker + play button
-                    HStack(spacing: 12) {
-                        Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
-                            .frame(width: 20)
-
-                        Text("Sound")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        HStack(spacing: 6) {
-                            // Sound picker
-                            HStack(spacing: 0) {
-                                ForEach(AzanSound.allCases, id: \.self) { s in
-                                    Button {
-                                        withAnimation(.spring(duration: 0.15)) { config.sound = s }
-                                    } label: {
-                                        Text(s.rawValue)
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundStyle(config.sound == s ? .white : .secondary)
-                                            .padding(.horizontal, 9)
-                                            .padding(.vertical, 5)
-                                            .background(
-                                                config.sound == s ? config.referenceTime.color : Color.clear,
-                                                in: RoundedRectangle(cornerRadius: 6)
-                                            )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 7))
-                            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-
-                            // Play preview button
-                            Button {
-                                withAnimation(.spring(duration: 0.2)) { isPlaying.toggle() }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    withAnimation { isPlaying = false }
-                                }
-                            } label: {
-                                Image(systemName: isPlaying ? "stop.fill" : "play.fill")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(config.referenceTime.color)
-                                    .frame(width: 28, height: 28)
-                                    .background(config.referenceTime.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
-                                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(config.referenceTime.color.opacity(0.2), lineWidth: 1))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-
-                    Divider().padding(.horizontal, 32).opacity(0.25)
-
-                    // Volume slider
-                    HStack(spacing: 12) {
-                        Image(systemName: config.volume < 0.1 ? "speaker.slash.fill" :
-                              config.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.3.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(config.referenceTime.color.opacity(0.7))
-                            .frame(width: 20)
-
-                        Text("Volume")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-
-                        Slider(value: $config.volume, in: 0...1)
-                            .tint(config.referenceTime.color)
-
-                        Text("\(Int(config.volume * 100))%")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 30, alignment: .trailing)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                }
-                .background(Color.primary.opacity(0.03))
+            if config.zEnabled {
+                AdjustmentRow(
+                    label: "After prayer starts",
+                    icon: "clock.badge.fill",
+                    iconColor: AppColor.accentGold,
+                    value: $config.zMinutes,
+                    range: 5...60, step: 5, unit: "min", showSign: false
+                )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
+
+            Divider().padding(.horizontal, 32).opacity(0.25)
+
+            SettingsDetailRow(
+                icon: "speaker.wave.2.fill",
+                iconColor: config.referenceTime.color,
+                title: "Sound",
+                value: config.soundDisplayName
+            ) { showSoundPicker = true }
+            .sheet(isPresented: $showSoundPicker) {
+                SoundPickerDialog(current: config.sound) { sound, url in
+                    config.sound = sound
+                    config.customSoundURL = url
+                }
+            }
         }
+        .animation(.spring(duration: 0.18), value: config.zEnabled)
     }
 
     private var summaryText: String {
-        var parts: [String] = ["\(config.reminderMinutes) min early"]
-        if config.secondReminder { parts.append("at prayer") }
-        parts.append(config.sound.rawValue)
+        var parts: [String] = ["\(config.xMinutes)m early"]
+        if config.atPrayerTime { parts.append("at prayer") }
+        if config.zEnabled { parts.append("jamaat +\(config.zMinutes)m") }
+        parts.append(config.soundDisplayName)
         return parts.joined(separator: " · ")
+    }
+}
+
+// Friday Jumu'ah row — uses same NotifAccordionRow generic component
+struct FridayJumuahRow: View {
+    @Binding var config: FridayJumuahConfig
+    @State private var showSoundPicker = false
+
+    var body: some View {
+        NotifAccordionRow(
+            icon: "building.columns.fill",
+            iconColor: AppColor.accentGold,
+            title: "Jumu'ah",
+            subtitle: summaryText,
+            enabled: $config.enabled
+        ) {
+            AdjustmentRow(
+                label: "Remind me before",
+                icon: "bell.fill",
+                iconColor: AppColor.accentGold,
+                value: $config.xMinutes,
+                range: 5...60, step: 5, unit: "min", showSign: false
+            )
+
+            Divider().padding(.horizontal, 32).opacity(0.25)
+
+            AdjustmentRow(
+                label: "Khutbah / jamaat after",
+                icon: "figure.stand",
+                iconColor: AppColor.accentGold,
+                value: $config.zMinutes,
+                range: 5...60, step: 5, unit: "min", showSign: false
+            )
+
+            Divider().padding(.horizontal, 32).opacity(0.25)
+
+            NotifToggleRow(
+                icon: "clock.arrow.circlepath",
+                iconColor: AppColor.accentGold,
+                label: "Remind if missed",
+                isOn: $config.missedEnabled
+            )
+
+            if config.missedEnabled {
+                AdjustmentRow(
+                    label: "Remind after prayer time",
+                    icon: "bell.badge.slash",
+                    iconColor: AppColor.alert,
+                    value: $config.missedMinutes,
+                    range: 5...120, step: 5, unit: "min", showSign: false
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            Divider().padding(.horizontal, 32).opacity(0.25)
+
+            SettingsDetailRow(
+                icon: "speaker.wave.2.fill",
+                iconColor: AppColor.accentGold,
+                title: "Sound",
+                value: config.sound.displayName
+            ) { showSoundPicker = true }
+            .sheet(isPresented: $showSoundPicker) {
+                SoundPickerDialog(current: config.sound) { sound, _ in
+                    config.sound = sound
+                }
+            }
+        }
+        .animation(.spring(duration: 0.18), value: config.missedEnabled)
+    }
+
+    private var summaryText: String {
+        var parts = ["\(config.xMinutes)m early", "jamaat +\(config.zMinutes)m"]
+        if config.missedEnabled { parts.append("missed →\(config.missedMinutes)m") }
+        return parts.joined(separator: " · ")
+    }
+}
+
+// Per-anchor row for Surah Kahf: toggle + optional stepper + optional time picker
+struct KahfAnchorRow: View {
+    @Binding var config: KahfAnchorConfig
+    @State private var showSoundPicker = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                Image(systemName: config.anchor.icon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(config.enabled ? config.anchor.color : .secondary.opacity(0.35))
+                    .frame(width: 28, height: 28)
+                    .background(
+                        (config.enabled ? config.anchor.color : Color.secondary).opacity(0.1),
+                        in: RoundedRectangle(cornerRadius: 7)
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(config.anchor.displayName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(config.enabled ? .primary : .secondary)
+                    Text(config.anchor.subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Toggle("", isOn: $config.enabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .tint(config.anchor.color)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            if config.enabled {
+                Divider().padding(.leading, 60).opacity(0.2)
+
+                if config.anchor.hasOffset {
+                    AdjustmentRow(
+                        label: "After",
+                        icon: "clock",
+                        iconColor: config.anchor.color,
+                        value: $config.minutesAfter,
+                        range: 5...120,
+                        step: 5,
+                        unit: "min",
+                        showSign: false
+                    )
+                } else {
+                    // Custom time picker for .customTime
+                    HStack(spacing: 14) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(config.anchor.color)
+                            .frame(width: 28, height: 28)
+                            .background(config.anchor.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+
+                        Text("Time")
+                            .font(.system(size: 13, weight: .medium))
+
+                        Spacer()
+
+                        DatePicker(
+                            "",
+                            selection: Binding(
+                                get: { config.fixedTime ?? Date() },
+                                set: { config.fixedTime = $0 }
+                            ),
+                            displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                        .frame(width: 100)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 9)
+                }
+            }
+        }
+        .animation(.spring(duration: 0.18), value: config.enabled)
     }
 }
 
@@ -243,23 +261,26 @@ struct NotifPrayerRow: View {
 struct NotifToggleRow: View {
     let icon: String
     let iconColor: Color
-    let title: String
-    let subtitle: String
+    let label: String
+    var subtitle: String? = nil
     @Binding var isOn: Bool
 
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundStyle(iconColor)
-                .frame(width: 20)
+                .frame(width: 28, height: 28)
+                .background(iconColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(label)
                     .font(.system(size: 13, weight: .medium))
-                Text(subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
@@ -278,19 +299,22 @@ struct NotifToggleRow: View {
 
 struct NotificationsView: View {
     @State private var configs: [PrayerNotifConfig] = [
-        PrayerNotifConfig(referenceTime: .fajr,    enabled: true,  reminderMinutes: 20, secondReminder: true,  sound: .medina,   volume: 1.0),
-        PrayerNotifConfig(referenceTime: .dhuhr,   enabled: true,  reminderMinutes: 20, secondReminder: false, sound: .default_, volume: 0.7),
-        PrayerNotifConfig(referenceTime: .asr,     enabled: true,  reminderMinutes: 30, secondReminder: true,  sound: .mecca,    volume: 0.8),
-        PrayerNotifConfig(referenceTime: .maghrib, enabled: true,  reminderMinutes: 15, secondReminder: true,  sound: .mecca,    volume: 0.8),
-        PrayerNotifConfig(referenceTime: .isha,    enabled: false, reminderMinutes: 20, secondReminder: false, sound: .default_, volume: 0.6),
+        PrayerNotifConfig(referenceTime: .fajr,    enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
+        PrayerNotifConfig(referenceTime: .dhuhr,   enabled: true, xMinutes: 20, atPrayerTime: false, zEnabled: true, zMinutes: 30, sound: .systemDefault),
+        PrayerNotifConfig(referenceTime: .asr,     enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
+        PrayerNotifConfig(referenceTime: .maghrib, enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 10, sound: .systemDefault),
+        PrayerNotifConfig(referenceTime: .isha,    enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
     ]
 
-    @State private var allEnabled      = true
-    @State private var iPrayedAction   = true
-    @State private var snoozeEnabled   = true
-    @State private var respectDND      = true
-    @State private var testSent        = false
+    @State private var allEnabled        = true
+    @State private var iPrayedAction     = true
+    @State private var snoozeEnabled     = true
+    @State private var respectDND        = true
+    @State private var testSent          = false
     @State private var selectedTestPrayer: Int = 0
+    @State private var mulkConfig        = SurahMulkConfig()
+    @State private var kahfConfig        = SurahKahfConfig()
+    @State private var jumuahConfig      = FridayJumuahConfig()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -300,8 +324,10 @@ struct NotificationsView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     prayerAlertsCard
-                    generalCard
                     actionsCard
+                    generalCard
+                    surahMulkCard
+                    surahKahfCard
                     testNotificationCard
                 }
                 .padding(24)
@@ -358,10 +384,28 @@ struct NotificationsView: View {
                     NotifPrayerRow(config: $config)
                         .disabled(!allEnabled)
                         .opacity(allEnabled ? 1 : 0.45)
-                    if config.id != configs.last?.id {
-                        Divider().padding(.leading, 52).opacity(0.3)
-                    }
+                    Divider().padding(.leading, 52).opacity(0.3)
                 }
+
+                // Friday Jumu'ah — separate config inside same card
+                HStack(spacing: 6) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(AppColor.accentGold.opacity(0.7))
+                    Text("FRIDAY")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(AppColor.accentGold.opacity(0.7))
+                        .kerning(1)
+                    Rectangle()
+                        .fill(AppColor.accentGold.opacity(0.2))
+                        .frame(height: 1)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+
+                FridayJumuahRow(config: $jumuahConfig)
+                    .disabled(!allEnabled)
+                    .opacity(allEnabled ? 1 : 0.45)
             }
             .padding(.bottom, 4)
         }
@@ -387,7 +431,7 @@ struct NotificationsView: View {
             NotifToggleRow(
                 icon: "moon.fill",
                 iconColor: Color(hex: "#6366F1"),
-                title: "Respect Focus / DND",
+                label: "Respect Focus / DND",
                 subtitle: "Silence during macOS Focus modes",
                 isOn: $respectDND
             )
@@ -397,7 +441,7 @@ struct NotificationsView: View {
             NotifToggleRow(
                 icon: "bell.badge.slash.fill",
                 iconColor: AppColor.accentGold,
-                title: "Fajr Exception",
+                label: "Fajr Exception",
                 subtitle: "Always alert for Fajr even in DND",
                 isOn: .constant(true)
             )
@@ -483,6 +527,105 @@ struct NotificationsView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
 
+    // MARK: Surah Mulk card
+    private var surahMulkCard: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack(spacing: 14) {
+                Image(systemName: "moon.stars.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(ReferenceTime.isha.color)
+                    .frame(width: 28, height: 28)
+                    .background(ReferenceTime.isha.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Surah Mulk")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Daily reminder after Isha")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Toggle("", isOn: $mulkConfig.enabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .tint(ReferenceTime.isha.color)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            if mulkConfig.enabled {
+                Divider().padding(.horizontal, 16).opacity(0.3)
+
+                AdjustmentRow(
+                    label: "After Isha",
+                    icon: "moon.fill",
+                    iconColor: ReferenceTime.isha.color,
+                    value: $mulkConfig.minutesAfterIsha,
+                    range: 5...120,
+                    step: 5,
+                    unit: "min",
+                    showSign: false
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+
+                Divider().padding(.horizontal, 32).opacity(0.25)
+
+                mulkSoundRow
+            }
+        }
+        .animation(.spring(duration: 0.22), value: mulkConfig.enabled)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+    }
+
+    @State private var showMulkSoundPicker = false
+    private var mulkSoundRow: some View {
+        SettingsDetailRow(
+            icon: "speaker.wave.2.fill",
+            iconColor: ReferenceTime.isha.color,
+            title: "Sound",
+            value: mulkConfig.sound.displayName
+        ) { showMulkSoundPicker = true }
+        .sheet(isPresented: $showMulkSoundPicker) {
+            SoundPickerDialog(current: mulkConfig.sound) { sound, _ in
+                mulkConfig.sound = sound
+            }
+        }
+    }
+
+    // MARK: Surah Kahf card
+    private var surahKahfCard: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Surah Kahf")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("Thu – Fri")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 4)
+
+            Divider().padding(.horizontal, 16).opacity(0.4)
+
+            ForEach($kahfConfig.anchors) { $anchor in
+                KahfAnchorRow(config: $anchor)
+                if anchor.id != kahfConfig.anchors.last?.id {
+                    Divider().padding(.leading, 60).opacity(0.3)
+                }
+            }
+            .padding(.bottom, 4)
+        }
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+    }
+
     // MARK: Actions card
     private var actionsCard: some View {
         VStack(spacing: 0) {
@@ -501,7 +644,7 @@ struct NotificationsView: View {
             NotifToggleRow(
                 icon: "hand.thumbsup.fill",
                 iconColor: AppColor.accentTeal,
-                title: "\"I Prayed\" Quick Action",
+                label: "\"I Prayed\" Quick Action",
                 subtitle: "Mark prayer from the notification banner",
                 isOn: $iPrayedAction
             )
@@ -511,7 +654,7 @@ struct NotificationsView: View {
             NotifToggleRow(
                 icon: "clock.arrow.circlepath",
                 iconColor: AppColor.accentGold,
-                title: "Snooze (5 min)",
+                label: "Snooze (5 min)",
                 subtitle: "Remind again if dismissed without marking",
                 isOn: $snoozeEnabled
             )

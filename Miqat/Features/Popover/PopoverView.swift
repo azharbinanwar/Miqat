@@ -6,34 +6,117 @@ struct PopoverPrayerRow: View {
     let entry: PrayerEntry
     let countdown: String
 
+    private var timeStatus:    PrayerTimeStatus    { entry.timeStatus }
+    private var trackerStatus: PrayerTrackerStatus { entry.trackerStatus }
+    private var isCurrent: Bool { timeStatus == .current }
+    private var isSoon:    Bool { timeStatus == .soon }
+
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: entry.referenceTime.icon)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(rowIconColor)
-                .frame(width: 18)
+        HStack(spacing: 0) {
+            // Left accent bar — current only
+            RoundedRectangle(cornerRadius: 2)
+                .fill(isCurrent ? entry.referenceTime.color : Color.clear)
+                .frame(width: 3)
+                .padding(.vertical, 8)
 
-            Text(entry.referenceTime.rawValue)
-                .font(.system(size: 13, weight: entry.isCurrent ? .semibold : .regular))
-                .foregroundStyle(rowTextColor)
+            HStack(spacing: 10) {
+                // Prayer identity icon
+                Image(systemName: entry.referenceTime.icon)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(rowIconColor)
+                    .frame(width: 18)
 
-            Spacer()
+                // Prayer name
+                Text(entry.referenceTime.rawValue)
+                    .font(.system(size: 13, weight: isCurrent ? .semibold : .regular))
+                    .foregroundStyle(rowNameColor)
 
-            if entry.isCurrent {
-                Text(countdown)
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .foregroundStyle(countdownColor)
-            } else {
-                Text(entry.time)
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(rowTimeColor)
+                Spacer()
+
+                // Time status badge (NOW / SOON)
+                if let label = timeStatus.badgeLabel {
+                    Text(label)
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(
+                            isCurrent ? .white.opacity(0.25) : timeStatus.badgeColor.opacity(0.35),
+                            in: Capsule()
+                        )
+                }
+
+                // Tracker badge (PRAYED / MISSED)
+                if let label = trackerStatus.badgeLabel {
+                    HStack(spacing: 3) {
+                        Image(systemName: trackerStatus == .prayed ? "checkmark" : "xmark")
+                            .font(.system(size: 7, weight: .bold))
+                        Text(label)
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundStyle(trackerStatus.color)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(trackerStatus.badgeBackground, in: Capsule())
+                }
+
+                // Time / countdown
+                if isCurrent {
+                    Text(countdown)
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(countdownColor)
+                } else {
+                    Text(entry.time)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(rowTimeColor)
+                }
+
+                // Tracker status icon
+                Image(systemName: trackerStatus.icon)
+                    .font(.system(size: isCurrent ? 8 : 13))
+                    .foregroundStyle(
+                        isCurrent
+                            ? entry.referenceTime.color
+                            : trackerStatus.color
+                    )
             }
-
-            statusDot
+            .padding(.leading, 10)
+            .padding(.trailing, 14)
+            .padding(.vertical, 9)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 9)
-        .background(entry.isCurrent ? Color.white.opacity(0.1) : Color.clear)
+        .background {
+            if isCurrent {
+                entry.referenceTime.color.opacity(0.15)
+            } else if trackerStatus == .prayed {
+                AppColor.softGreen.opacity(0.07)
+            } else if trackerStatus == .missed {
+                AppColor.softRed.opacity(0.07)
+            } else {
+                Color.clear
+            }
+        }
+    }
+
+    // MARK: Colours
+
+    private var rowIconColor: Color {
+        switch timeStatus {
+        case .current:  return entry.referenceTime.color
+        case .soon:     return AppColor.softAmber
+        default:        return .white.opacity(0.65)
+        }
+    }
+
+    private var rowNameColor: Color {
+        switch timeStatus {
+        case .current:  return .white
+        case .soon:     return .white
+        default:        return .white.opacity(0.75)
+        }
+    }
+
+    private var rowTimeColor: Color {
+        .white.opacity(0.55)
     }
 
     private var countdownColor: Color {
@@ -41,35 +124,6 @@ struct PopoverPrayerRow: View {
         if mins <= 20 { return AppColor.softRed }
         if mins <= 30 { return AppColor.softAmber }
         return .white
-    }
-
-    private var rowIconColor: Color {
-        entry.status == .prayed || entry.status == .passed
-            ? .white.opacity(0.3)
-            : entry.referenceTime.color
-    }
-
-    private var rowTextColor: Color {
-        entry.isCurrent ? .white :
-        entry.status == .prayed || entry.status == .passed ? .white.opacity(0.3) : .white.opacity(0.75)
-    }
-
-    private var rowTimeColor: Color {
-        entry.status == .prayed || entry.status == .passed ? .white.opacity(0.3) : .white.opacity(0.55)
-    }
-
-    @ViewBuilder
-    private var statusDot: some View {
-        switch entry.status {
-        case .prayed:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.45))
-        case .current:
-            Circle().fill(entry.referenceTime.color).frame(width: 6, height: 6)
-        default:
-            Circle().stroke(Color.white.opacity(0.2), lineWidth: 1).frame(width: 6, height: 6)
-        }
     }
 
     private func minutesFromCountdown(_ s: String) -> Int {

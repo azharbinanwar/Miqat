@@ -30,6 +30,7 @@ enum AppColor {
     // MARK: - Soft (text on dark backgrounds)
     static let softRed   = Color(hex: "#FCA5A5")
     static let softAmber = Color(hex: "#FCD34D")
+    static let softGreen = Color(hex: "#4ADE80")
 
     // MARK: - Misc (onboarding, one-off UI)
     static let skyCyan = Color(hex: "#0284C7")

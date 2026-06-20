@@ -50,13 +50,10 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
             let adhanPrayer = ref.adhanPrayer
             let rawDate = prayerTimes.time(for: adhanPrayer)
             let status: PrayerStatus = {
-                guard let nextP = prayerTimes.nextPrayer(at: date),
-                      let currentP = prayerTimes.currentPrayer(at: date)
-                else { return .upcoming }
-                let nextRef = ReferenceTime(adhanPrayer: nextP)
-                let currentRef = ReferenceTime(adhanPrayer: currentP)
-                if ref == nextRef { return .alert }
-                if ref == currentRef { return .current }
+                let nextP    = prayerTimes.nextPrayer(at: date)
+                let currentP = prayerTimes.currentPrayer(at: date)
+                if let nextP, let nextRef = ReferenceTime(adhanPrayer: nextP), ref == nextRef       { return .alert }
+                if let currentP, let curRef = ReferenceTime(adhanPrayer: currentP), ref == curRef   { return .current }
                 if rawDate < date { return .passed }
                 return .upcoming
             }()
@@ -79,7 +76,11 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
     }
 
     func nextPrayer(from entries: [PrayerEntry], at date: Date) -> PrayerEntry? {
-        entries.first(where: { $0.status == .alert || $0.status == .upcoming })
+        entries.first { entry in
+            guard let entryDate = entry.date else { return false }
+            let statusOk = entry.status == .alert || entry.status == .upcoming
+            return statusOk && entryDate > date
+        }
     }
 }
 
