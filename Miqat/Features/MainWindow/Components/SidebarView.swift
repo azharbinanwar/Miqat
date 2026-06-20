@@ -38,6 +38,7 @@ enum SidebarSection: String {
 
 struct SidebarView: View {
     @Binding var selected: SidebarItem
+    @Environment(LocationViewModel.self) private var locationVM
 
     private let sections: [(SidebarSection, [SidebarItem])] = [
         (.main,  [.today, .monthly]),
@@ -115,10 +116,18 @@ struct SidebarView: View {
             Image(systemName: "location.fill")
                 .font(.system(size: 11))
                 .foregroundStyle(AppColor.accentTeal)
-            Text(LocationViewModel.shared.activeLocation?.city ?? "No location set")
+            Text(locationVM.activeLocation?.city ?? "No location set")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.15)) { selected = .location }
         }
     }
 }

@@ -100,16 +100,8 @@ final class PrayerTimeViewModel {
     }
 
     var countdownText: String {
-        guard let date = nextPrayerEntry?.date else { return "--:--" }
-        let diff = max(0, date.timeIntervalSince(liveNow))
-        let hrs = Int(diff) / 3600
-        let mins = (Int(diff) % 3600) / 60
-        let secs = Int(diff) % 60
-        if hrs > 0 {
-            return String(format: "%02d:%02d:%02d", hrs, mins, secs)
-        } else {
-            return String(format: "%02d:%02d", mins, secs)
-        }
+        guard let date = nextPrayerEntry?.date else { return "--:--:--" }
+        return TimeInterval.formatCountdown(date.timeIntervalSince(liveNow))
     }
 
     // MARK: - Settings updates

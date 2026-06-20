@@ -62,7 +62,7 @@ struct LocationRow: View {
 // MARK: - Location View
 
 struct LocationView: View {
-    @State private var vm         = LocationViewModel.shared
+    @Environment(LocationViewModel.self) private var vm
     @State private var showDialog = false
 
     var body: some View {

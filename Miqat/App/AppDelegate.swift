@@ -9,8 +9,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindowController: NSWindowController?
     private var widgetController: NSWindowController?
     private var onboardingWindow: NSWindow?
-    private var menuBarVM : PrayerTimeViewModel!
-    private var settingsVM: SettingsViewModel!
+    private var menuBarVM  : PrayerTimeViewModel!
+    private var settingsVM : SettingsViewModel!
+    private var locationVM : LocationViewModel!
     private var statusTimer: Timer?
 
     // MARK: - Launch
@@ -164,7 +165,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("[AppDelegate] creating NSHostingView for MainWindowView")
         window.contentView = NSHostingView(rootView: MainWindowView()
             .environment(settingsVM)
-            .environment(menuBarVM))
+            .environment(menuBarVM)
+            .environment(locationVM))
         print("[AppDelegate] NSHostingView created — making key")
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -182,7 +184,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let storage = ServiceLocator.shared.resolve(SettingsStorageProtocol.self)
         self.settingsVM = SettingsViewModel(storage: storage)
-        ServiceLocator.shared.register(SettingsViewModel.self) { self.settingsVM }
+        self.locationVM = .shared
 
         ServiceLocator.shared.register(PrayerEngineServiceProtocol.self) { PrayerEngineService() }
     }
