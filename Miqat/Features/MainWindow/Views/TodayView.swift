@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct TodayView: View {
-    let vm: SettingsViewModel
-    let prayerVM: PrayerTimeViewModel
+    @Environment(SettingsViewModel.self) private var settingsVM
+    @Environment(PrayerTimeViewModel.self) private var prayerVM
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,11 +27,11 @@ struct TodayView: View {
         .onAppear {
             loadPrayerTimes()
         }
-        .onChange(of: vm.settings.prayerCalculationSettings) { loadPrayerTimes() }
+        .onChange(of: settingsVM.settings.prayerCalculationSettings) { loadPrayerTimes() }
     }
 
     private func loadPrayerTimes() {
-        prayerVM.update(settings: vm.settings.prayerCalculationSettings)
+        prayerVM.update(settings: settingsVM.settings.prayerCalculationSettings)
         let repo = ServiceLocator.shared.resolve(LocationRepository.self)
         let location = repo.getActiveLocation() ?? Location.presets[0]
         prayerVM.load(location: location)

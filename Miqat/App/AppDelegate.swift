@@ -9,7 +9,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindowController: NSWindowController?
     private var widgetController: NSWindowController?
     private var onboardingWindow: NSWindow?
-    private var menuBarVM: PrayerTimeViewModel!
+    private var menuBarVM : PrayerTimeViewModel!
+    private var settingsVM: SettingsViewModel!
     private var statusTimer: Timer?
 
     // MARK: - Launch
@@ -21,12 +22,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         setupPopover()
 
-        // DEBUG: always show onboarding — remove before release
-        showOnboarding()
-//         RELEASE: uncomment below and remove line above
-         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-             showMainWindow(); showWidget()
-         } else { showOnboarding() }
+        if UserDefaults.standard.bool(forKey: Keys.Defaults.hasCompletedOnboarding) {
+            showMainWindow()
+        } else {
+            showOnboarding()
+        }
     }
 
     // MARK: - Prayer Times (shared for Menu Bar)
@@ -59,7 +59,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateStatusItemTitle(button: NSStatusBarButton) {
-        let settingsVM = ServiceLocator.shared.resolve(SettingsViewModel.self)
         let s = settingsVM.settings
 
         let attrStr = NSMutableAttributedString()
@@ -130,7 +129,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pop.behavior = .transient
         pop.animates = true
         pop.contentSize           = NSSize(width: 320, height: 480)
-        let settingsVM = ServiceLocator.shared.resolve(SettingsViewModel.self)
         pop.contentViewController = NSHostingController(rootView: PopoverView(prayerVM: menuBarVM, settingsVM: settingsVM))
         popover = pop
     }
@@ -164,8 +162,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarAppearsTransparent = false
         window.center()
         print("[AppDelegate] creating NSHostingView for MainWindowView")
-        let settingsVM = ServiceLocator.shared.resolve(SettingsViewModel.self)
-        window.contentView = NSHostingView(rootView: MainWindowView(settingsVM: settingsVM, prayerVM: menuBarVM))
+        window.contentView = NSHostingView(rootView: MainWindowView()
+            .environment(settingsVM)
+            .environment(menuBarVM))
         print("[AppDelegate] NSHostingView created — making key")
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -182,11 +181,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ServiceLocator.shared.register(SettingsStorageProtocol.self)    { UserDefaultsStorage() }
 
         let storage = ServiceLocator.shared.resolve(SettingsStorageProtocol.self)
-        let sharedSettingsVM = SettingsViewModel(storage: storage)
-        ServiceLocator.shared.register(SettingsViewModel.self)          { sharedSettingsVM }
+        self.settingsVM = SettingsViewModel(storage: storage)
+        ServiceLocator.shared.register(SettingsViewModel.self) { self.settingsVM }
 
         ServiceLocator.shared.register(PrayerEngineServiceProtocol.self) { PrayerEngineService() }
-        ServiceLocator.shared.register(PrayerTimeViewModel.self)        { PrayerTimeViewModel() }
     }
 
     // MARK: - Widget (floating NSPanel)
@@ -230,7 +228,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             rootView: OnboardingView {
                 DispatchQueue.main.async {
                     LocationViewModel.shared.cancelFetch()
-                    UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                    UserDefaults.standard.set(true, forKey: Keys.Defaults.hasCompletedOnboarding)
                     self.onboardingWindow?.animationBehavior = .none
                     self.onboardingWindow?.close()
                     // Nil AFTER main window is shown — keeps our strong reference alive

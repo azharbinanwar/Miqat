@@ -112,7 +112,8 @@ struct DayCell: View {
 // MARK: - Monthly View
 
 struct MonthlyView: View {
-    let prayerVM: PrayerTimeViewModel
+    @Environment(PrayerTimeViewModel.self) private var prayerVM
+    @Environment(SettingsViewModel.self)  private var settingsVM
 
     @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDate  : Date? = Date()
@@ -310,7 +311,7 @@ struct MonthlyView: View {
     private func loadPrayerItems(for date: Date) {
         let repo     = ServiceLocator.shared.resolve(LocationRepository.self)
         let location = repo.getActiveLocation() ?? Location.presets[0]
-        let settings = ServiceLocator.shared.resolve(SettingsViewModel.self).settings.prayerCalculationSettings
+        let settings = settingsVM.settings.prayerCalculationSettings
         let cal      = Calendar.current
         let isToday  = cal.isDateInToday(date)
         let isPast   = date < cal.startOfDay(for: Date()) && !isToday

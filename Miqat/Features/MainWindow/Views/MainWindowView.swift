@@ -2,8 +2,8 @@ import SwiftUI
 
 struct MainWindowView: View {
     @State private var selectedItem: SidebarItem = .today
-    let settingsVM: SettingsViewModel
-    let prayerVM: PrayerTimeViewModel
+    @Environment(SettingsViewModel.self) private var settingsVM
+    @Environment(PrayerTimeViewModel.self) private var prayerVM
 
     var body: some View {
         HStack(spacing: 0) {
@@ -11,14 +11,14 @@ struct MainWindowView: View {
             Divider()
 
             VStack(spacing: 0) {
-                HeaderBar(vm: settingsVM)
+                HeaderBar()
                 Divider()
 
                 switch selectedItem {
                 case .today:
-                    TodayView(vm: settingsVM, prayerVM: prayerVM)
+                    TodayView()
                 case .monthly:
-                    MonthlyView(prayerVM: prayerVM)
+                    MonthlyView()
                 case .tracker:
                     TrackerView()
                 case .stats:
@@ -28,7 +28,7 @@ struct MainWindowView: View {
                 case .location:
                     LocationView()
                 case .settings:
-                    SettingsView(vm: settingsVM)
+                    SettingsView()
                 }
             }
         }
@@ -64,7 +64,7 @@ struct MainWindowView: View {
 // MARK: - Header Bar
 
 struct HeaderBar: View {
-    let vm: SettingsViewModel
+    @Environment(SettingsViewModel.self) private var settingsVM
 
     private var fullDate: String {
         let f = DateFormatter()
@@ -91,8 +91,8 @@ struct HeaderBar: View {
             Spacer()
 
             HStack(spacing: 0) {
-                madhhabButton("Hanafi",  selected: vm.settings.madhab == .hanafi) { vm.update { $0.madhab = .hanafi } }
-                madhhabButton("Shafi'i", selected: vm.settings.madhab == .shafi)  { vm.update { $0.madhab = .shafi  } }
+                madhhabButton("Hanafi",  selected: settingsVM.settings.madhab == .hanafi) { settingsVM.update { $0.madhab = .hanafi } }
+                madhhabButton("Shafi'i", selected: settingsVM.settings.madhab == .shafi)  { settingsVM.update { $0.madhab = .shafi  } }
             }
             .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.08), lineWidth: 1))
@@ -117,6 +117,8 @@ struct HeaderBar: View {
 }
 
 #Preview {
-    MainWindowView(settingsVM: SettingsViewModel(), prayerVM: PrayerTimeViewModel())
+    MainWindowView()
+        .environment(SettingsViewModel())
+        .environment(PrayerTimeViewModel())
         .preferredColorScheme(.dark)
 }

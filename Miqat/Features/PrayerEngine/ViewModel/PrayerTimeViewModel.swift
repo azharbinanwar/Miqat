@@ -81,9 +81,6 @@ final class PrayerTimeViewModel {
         let freshLocation = repo.getActiveLocation() ?? location ?? Location.presets[0]
         location = freshLocation
 
-        let globalSettings = ServiceLocator.shared.resolve(SettingsViewModel.self)
-        self.settings = globalSettings.settings.prayerCalculationSettings
-
         load(location: freshLocation)
     }
 

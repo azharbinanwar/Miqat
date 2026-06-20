@@ -214,8 +214,8 @@ struct AdjustmentRow: View {
 // MARK: - Settings View
 
 struct SettingsView: View {
-    let vm: SettingsViewModel
-    @State private var previewVM = PrayerTimeViewModel()
+    @Environment(SettingsViewModel.self)  private var vm
+    @Environment(PrayerTimeViewModel.self) private var previewVM
 
     // Prayer calculation — read from global VM
     @State private var showMethodDialog = false

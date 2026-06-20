@@ -46,7 +46,7 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
 
         let formatter = timeFormatter(for: date)
 
-        var entries = ReferenceTime.allCases.map { ref -> PrayerEntry in
+        let entries = ReferenceTime.allCases.map { ref -> PrayerEntry in
             let adhanPrayer = ref.adhanPrayer
             let rawDate = prayerTimes.time(for: adhanPrayer)
             let status: PrayerStatus = {

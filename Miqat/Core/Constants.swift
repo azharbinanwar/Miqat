@@ -6,6 +6,7 @@ enum Keys {
         static let activeLocationId  = "dev.miqat.activeLocationId"
         static let settings         = "dev.miqat.settings.v1"
         static let accentColorIndex = "dev.miqat.accentColorIndex"
-        static let selectedMadhab   = "dev.miqat.selectedMadhab"
+        static let selectedMadhab          = "dev.miqat.selectedMadhab"
+        static let hasCompletedOnboarding  = "dev.miqat.hasCompletedOnboarding"
     }
 }
