@@ -22,6 +22,7 @@ enum AppColor {
     static let accentPurple = Color(hex: "#7C3AED")
     static let accentGold   = Color(hex: "#D97706")
     static let accentBlue   = Color(hex: "#2563EB")
+    static let accentGreen  = Color(hex: "#16A34A")  // Friday / Jumu'ah
 
     // MARK: - Status
     static let alert    = Color(hex: "#DC2626")

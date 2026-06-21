@@ -44,6 +44,12 @@ struct PrayerEntry: Identifiable, Codable {
 }
 
 extension PrayerEntry {
+    var label: String { referenceTime.label }
+    var icon:  String { referenceTime.icon }
+    var color: Color  { referenceTime.color }
+}
+
+extension PrayerEntry {
     var timeStatus: PrayerTimeStatus {
         if isCurrent || status == .current { return .current }
         if isAlert   || status == .alert   { return .soon }

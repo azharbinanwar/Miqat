@@ -29,4 +29,5 @@ struct Location: Identifiable, Codable, Equatable {
 
     static let presets: [Location] = [.makkah, .madinah, .karachi]
     static let presetLabels: Set<String> = ["Makkah", "Madinah", "Karachi"]
+    static let defaultLocation: Location = .makkah
 }

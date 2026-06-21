@@ -27,7 +27,7 @@ struct PopoverPrayerRow: View {
                     .frame(width: 18)
 
                 // Prayer name
-                Text(entry.referenceTime.rawValue)
+                Text(entry.label)
                     .font(.system(size: 13, weight: isCurrent ? .semibold : .regular))
                     .foregroundStyle(rowNameColor)
 
@@ -60,16 +60,10 @@ struct PopoverPrayerRow: View {
                     .background(trackerStatus.badgeBackground, in: Capsule())
                 }
 
-                // Time / countdown
-                if isCurrent {
-                    Text(countdown)
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundStyle(countdownColor)
-                } else {
-                    Text(entry.time)
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(rowTimeColor)
-                }
+                // Show prayer start time — countdown shown at top of popover only
+                Text(entry.time)
+                    .font(.system(size: 12, weight: isCurrent ? .bold : .regular, design: .monospaced))
+                    .foregroundStyle(isCurrent ? countdownColor : rowTimeColor)
 
                 // Tracker status icon
                 Image(systemName: trackerStatus.icon)
@@ -207,7 +201,7 @@ struct PopoverView: View {
     // MARK: Countdown hero
     private var countdownHero: some View {
         VStack(spacing: 4) {
-            Text("NEXT · \(prayerVM.nextPrayerEntry?.referenceTime.rawValue.uppercased() ?? "--")")
+            Text("NEXT · \(prayerVM.nextPrayerEntry?.label.uppercased() ?? "--")")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(1.5)

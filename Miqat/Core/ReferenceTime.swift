@@ -8,9 +8,10 @@ enum ReferenceTime: String, CaseIterable, Identifiable, Codable {
     case maghrib = "Maghrib"
     case isha    = "Isha"
 
-    var id: String    { rawValue }
-    var label: String { rawValue }
+    var id: String { rawValue }
 
+    // Today-based getters — used everywhere except MonthlyView
+    var label: String { label(for: Date()) }
     var icon: String {
         switch self {
         case .fajr:    return "moon.stars.fill"
@@ -21,12 +22,20 @@ enum ReferenceTime: String, CaseIterable, Identifiable, Codable {
         case .isha:    return "moon.fill"
         }
     }
+    var color: Color  { color(for: Date()) }
 
-    var color: Color {
+    // Date-specific functions — used only in MonthlyView
+    func label(for date: Date) -> String {
+        self == .dhuhr && Calendar.current.component(.weekday, from: date) == 6
+            ? "Jumu'ah" : rawValue
+    }
+
+    func color(for date: Date) -> Color {
         switch self {
         case .fajr:    return AppColor.fajr
         case .sunrise: return AppColor.sunrise
-        case .dhuhr:   return AppColor.dhuhr
+        case .dhuhr:   return Calendar.current.component(.weekday, from: date) == 6
+                              ? AppColor.accentGreen : AppColor.dhuhr
         case .asr:     return AppColor.asr
         case .maghrib: return AppColor.maghrib
         case .isha:    return AppColor.isha

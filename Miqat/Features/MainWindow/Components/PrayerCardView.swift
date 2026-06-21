@@ -14,7 +14,7 @@ struct PrayerCardView: View {
                     Spacer()
                 }
 
-                Text(entry.referenceTime.rawValue)
+                Text(entry.label)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
 

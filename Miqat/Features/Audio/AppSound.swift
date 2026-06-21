@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 enum AppSound: String, CaseIterable, Codable {
     case adhanOmarHisham  = "adhan_omar_hisham"
@@ -37,5 +38,15 @@ enum AppSound: String, CaseIterable, Codable {
 
     var isAdhan: Bool {
         folder == "Adhan"
+    }
+
+    // Bundled sounds → UNNotificationSound looks in app bundle resources.
+    // Custom user sounds → returns nil; caller plays via AVAudioPlayer using SoundConversionService.
+    var unNotificationSound: UNNotificationSound? {
+        switch self {
+        case .systemDefault: return .default
+        case .custom:        return nil
+        default:             return UNNotificationSound(named: UNNotificationSoundName("\(rawValue).aiff"))
+        }
     }
 }

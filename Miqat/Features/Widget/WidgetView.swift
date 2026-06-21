@@ -13,7 +13,7 @@ struct WidgetPrayerRow: View {
                 .foregroundStyle(rowIconColor)
                 .frame(width: 16)
 
-            Text(entry.referenceTime.rawValue)
+            Text(entry.label)
                 .font(.system(size: 13, weight: entry.isCurrent ? .semibold : .regular))
                 .foregroundStyle(rowTextColor)
 

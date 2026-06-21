@@ -52,7 +52,7 @@ enum KahfAnchor: String, CaseIterable, Codable, Identifiable {
 
 // MARK: - Kahf Anchor Config
 
-struct KahfAnchorConfig: Identifiable, Codable {
+struct KahfAnchorConfig: Identifiable, Codable, Equatable {
     var id: String { anchor.rawValue }
     let anchor: KahfAnchor
     var enabled: Bool
@@ -63,7 +63,7 @@ struct KahfAnchorConfig: Identifiable, Codable {
 
 // MARK: - Surah Mulk Config
 
-struct SurahMulkConfig: Codable {
+struct SurahMulkConfig: Codable, Equatable {
     var enabled: Bool = false
     var minutesAfterIsha: Int = 30   // 5–120
     var sound: AppSound = .systemDefault
@@ -85,7 +85,7 @@ struct SurahKahfConfig: Codable {
 
 // MARK: - Friday Jumu'ah Config
 
-struct FridayJumuahConfig: Codable {
+struct FridayJumuahConfig: Codable, Equatable {
     var enabled: Bool       = false
     var xMinutes: Int       = 20    // 5–60, remind before Jumu'ah
     var zMinutes: Int       = 30    // 5–60, khutbah starts after Dhuhr

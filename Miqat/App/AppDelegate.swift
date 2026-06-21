@@ -1,7 +1,9 @@
 import AppKit
+import AVFoundation
+import UserNotifications
 import SwiftUI
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
 
     // MARK: - Surfaces
     private var statusItem: NSStatusItem?
@@ -9,15 +11,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindowController: NSWindowController?
     private var widgetController: NSWindowController?
     private var onboardingWindow: NSWindow?
-    private var menuBarVM  : PrayerTimeViewModel!
-    private var settingsVM : SettingsViewModel!
-    private var locationVM : LocationViewModel!
-    private var statusTimer: Timer?
+    private var menuBarVM     : PrayerTimeViewModel!
+    private var settingsVM    : SettingsViewModel!
+    private var locationVM    : LocationViewModel!
+    private var notificationVM: NotificationViewModel!
+    private var statusTimer   : Timer?
+    private var wakeObserver  : Any?
 
     // MARK: - Launch
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        UNUserNotificationCenter.current().delegate = self
         setupDI()
         setupPrayerTimes()
         setupStatusItem()
@@ -41,7 +46,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let location = repo.getActiveLocation() {
             menuBarVM.load(location: location)
         }
+        // Wire location + settings into notification scheduler
+        // Always use saved location — never wait for live GPS
+        let savedLocation = repo.getActiveLocation()
+        let activeLocation = savedLocation ?? Location.defaultLocation
+        print("[AppDelegate] location: \(savedLocation != nil ? "saved=\(activeLocation.label)" : "nil — using default \(activeLocation.label)")")
+        notificationVM.location = activeLocation
+        notificationVM.calculationSettings = settingsVM.settings.prayerCalculationSettings
+        notificationVM.rescheduleAll()
+
         menuBarVM.startLiveUpdates()
+
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            print("💻 Mac woke — running scheduleIfNeeded")
+            self.notificationVM.rescheduleIfNeeded()
+        }
 
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let button = self?.statusItem?.button else { return }
@@ -76,7 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Prayer name
         if s.menuShowPrayerName {
-            let name = menuBarVM.nextPrayerEntry?.referenceTime.rawValue ?? "--"
+            let name = menuBarVM.nextPrayerEntry?.label ?? "--"
             attrStr.append(NSAttributedString(string: "\(name) "))
         }
 
@@ -163,15 +187,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Miqat"
         window.titlebarAppearsTransparent = false
         window.center()
-        print("[AppDelegate] creating NSHostingView for MainWindowView")
         window.contentView = NSHostingView(rootView: MainWindowView()
             .environment(settingsVM)
             .environment(menuBarVM)
-            .environment(locationVM))
-        print("[AppDelegate] NSHostingView created — making key")
+            .environment(locationVM)
+            .environment(notificationVM))
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        print("[AppDelegate] main window shown")
         mainWindowController = NSWindowController(window: window)
     }
 
@@ -184,8 +206,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ServiceLocator.shared.register(SettingsStorageProtocol.self)    { UserDefaultsStorage() }
 
         let storage = ServiceLocator.shared.resolve(SettingsStorageProtocol.self)
-        self.settingsVM = SettingsViewModel(storage: storage)
-        self.locationVM = .shared
+        self.settingsVM     = SettingsViewModel(storage: storage)
+        self.locationVM     = .shared
+        self.notificationVM = NotificationViewModel()
 
         ServiceLocator.shared.register(PrayerEngineServiceProtocol.self) { PrayerEngineService() }
     }
@@ -248,5 +271,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         onboardingWindow = window
+    }
+
+    // Show notifications even when app is in foreground.
+    // If the notification carries a custom sound (stored in App Support, not bundle),
+    // we suppress UNNotificationSound and play it ourselves via AVAudioPlayer.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        let userInfo = notification.request.content.userInfo
+        let soundName = userInfo["soundName"] as? String ?? ""
+        let customFile = userInfo["customSoundFilename"] as? String
+
+        if soundName == "none" || soundName.isEmpty {
+            completionHandler([.banner])
+        } else if let filename = customFile {
+            // Custom sound — play via AVAudioPlayer, suppress system sound to avoid double
+            playSound(url: SoundConversionService.shared.url(for: filename), label: filename)
+            completionHandler([.banner])
+        } else if let sound = AppSound(rawValue: soundName), sound != .systemDefault {
+            // Bundled sound — play via AVAudioPlayer, suppress system sound to avoid double
+            playBundledSound(sound)
+            completionHandler([.banner])
+        } else {
+            // System default — let macOS handle it
+            completionHandler([.banner, .sound])
+        }
+    }
+
+    private var notifSoundPlayer: AVAudioPlayer?
+
+    private func playBundledSound(_ sound: AppSound) {
+        guard let filename = sound.filename, let folder = sound.folder else { return }
+        let url = Bundle.main.url(forResource: filename, withExtension: "aiff", subdirectory: "Sounds/\(folder)")
+            ?? Bundle.main.url(forResource: filename, withExtension: "aiff")
+        guard let url else {
+            print("⚠️ Bundled sound not found: \(sound.rawValue)")
+            return
+        }
+        playSound(url: url, label: sound.rawValue)
+    }
+
+    private func playSound(url: URL, label: String) {
+        guard FileManager.default.fileExists(atPath: url.path),
+              let player = try? AVAudioPlayer(contentsOf: url) else {
+            print("⚠️ Sound file missing: \(label)")
+            return
+        }
+        notifSoundPlayer = player
+        player.play()
     }
 }

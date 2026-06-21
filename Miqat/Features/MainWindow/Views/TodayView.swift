@@ -65,7 +65,7 @@ struct NextPrayerHeroCard: View {
                         .tracking(2)
 
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(nextEntry?.referenceTime.rawValue ?? "--")
+                        Text(nextEntry?.label ?? "--")
                             .font(.system(size: 36, weight: .bold))
                             .foregroundStyle(.white)
                         Text(nextEntry?.time ?? "")
@@ -202,7 +202,7 @@ struct PrayerListRow: View {
                 .foregroundStyle(entry.referenceTime.color.opacity(entry.status == .prayed || entry.status == .passed ? 0.35 : 1))
                 .frame(width: 22)
 
-            Text(entry.referenceTime.rawValue)
+            Text(entry.label)
                 .font(.system(size: 14, weight: entry.isCurrent ? .semibold : .regular))
                 .foregroundStyle(entry.isCurrent ? .primary : entry.status == .prayed || entry.status == .passed ? .secondary : .primary)
 

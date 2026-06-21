@@ -13,6 +13,7 @@ struct DayEntry: Identifiable {
 struct MonthlyPrayerItem: Identifiable {
     let id           = UUID()
     let referenceTime: ReferenceTime
+    let fullDate     : Date
     let time         : String
     let status       : PrayerStatus
 }
@@ -26,10 +27,10 @@ struct MonthlyPrayerTile: View {
         HStack(spacing: 12) {
             Image(systemName: item.referenceTime.icon)
                 .font(.system(size: 13))
-                .foregroundStyle(item.referenceTime.color)
+                .foregroundStyle(item.referenceTime.color(for: item.fullDate))
                 .frame(width: 20)
 
-            Text(item.referenceTime.rawValue)
+            Text(item.referenceTime.label(for: item.fullDate))
                 .font(.system(size: 13))
 
             Spacer()
@@ -50,13 +51,13 @@ struct MonthlyPrayerTile: View {
         case .prayed:
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13))
-                .foregroundStyle(item.referenceTime.color)
+                .foregroundStyle(item.referenceTime.color(for: item.fullDate))
         case .passed:
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary.opacity(0.5))
         case .current:
-            Circle().fill(item.referenceTime.color).frame(width: 7, height: 7)
+            Circle().fill(item.referenceTime.color(for: item.fullDate)).frame(width: 7, height: 7)
         case .alert:
             Image(systemName: "bell.fill")
                 .font(.system(size: 11))
@@ -328,7 +329,7 @@ struct MonthlyView: View {
             } else {
                 status = .upcoming
             }
-            return MonthlyPrayerItem(referenceTime: entry.referenceTime, time: entry.time, status: status)
+            return MonthlyPrayerItem(referenceTime: entry.referenceTime, fullDate: entry.date ?? Date(), time: entry.time, status: status)
         }
     }
 }
