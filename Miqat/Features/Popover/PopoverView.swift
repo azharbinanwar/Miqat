@@ -135,6 +135,8 @@ struct PopoverPrayerRow: View {
 struct PopoverView: View {
     let prayerVM: PrayerTimeViewModel
     let settingsVM: SettingsViewModel
+    var onOpenApp: () -> Void = {}
+    var onOpenSettings: () -> Void = {}
     @State private var prayed          = false
     @State private var showLocations = false
     @State private var vm            = LocationViewModel.shared
@@ -142,7 +144,8 @@ struct PopoverView: View {
 
     var body: some View {
         ZStack {
-            Rectangle().fill(timeGradient).ignoresSafeArea()
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(timeGradient)
 
             VStack(spacing: 0) {
                 header
@@ -154,6 +157,7 @@ struct PopoverView: View {
                 footer
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .frame(width: 320)
         .fixedSize(horizontal: true, vertical: true)
         .animation(.spring(duration: 0.22), value: showLocations)
@@ -183,7 +187,7 @@ struct PopoverView: View {
 
             Spacer()
 
-            Button { } label: {
+            Button { onOpenApp() } label: {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.6))
@@ -255,7 +259,7 @@ struct PopoverView: View {
 
                 Spacer()
 
-                Button { } label: {
+                Button { onOpenSettings() } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(.white.opacity(0.5))

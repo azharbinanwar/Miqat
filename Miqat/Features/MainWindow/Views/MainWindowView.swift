@@ -1,7 +1,12 @@
 import SwiftUI
 
 struct MainWindowView: View {
-    @State private var selectedItem: SidebarItem = .today
+    var initialTab: SidebarItem = .today
+    @State private var selectedItem: SidebarItem
+    init(initialTab: SidebarItem = .today) {
+        self.initialTab = initialTab
+        _selectedItem = State(initialValue: initialTab)
+    }
     @Environment(SettingsViewModel.self) private var settingsVM
     @Environment(PrayerTimeViewModel.self) private var prayerVM
 
@@ -35,6 +40,9 @@ struct MainWindowView: View {
         .frame(minWidth: 780, minHeight: 680)
         .preferredColorScheme(appThemeColorScheme)
         .tint(AccentColor.current)
+        .onReceive(NotificationCenter.default.publisher(for: .miqatSwitchTab)) { note in
+            if let tab = note.object as? SidebarItem { selectedItem = tab }
+        }
     }
 
     private var appThemeColorScheme: ColorScheme? {

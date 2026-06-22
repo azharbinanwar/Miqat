@@ -3,6 +3,7 @@ import SwiftUI
 
 extension Notification.Name {
     static let settingsDidChange = Notification.Name("MiqatSettingsDidChange")
+    static let miqatSwitchTab    = Notification.Name("MiqatSwitchTab")
 }
 
 @Observable

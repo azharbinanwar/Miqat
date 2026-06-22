@@ -7,7 +7,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
     // MARK: - Surfaces
     private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
+    private var popoverPanel: NSPanel?
+    private var popoverEventMonitor: Any?
     private var mainWindowController: NSWindowController?
     private var widgetController: NSWindowController?
     private var onboardingWindow: NSWindow?
@@ -151,31 +152,93 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // MARK: - Popover
 
     private func setupPopover() {
-        let pop = NSPopover()
-        pop.behavior = .transient
-        pop.animates = true
-        pop.contentSize           = NSSize(width: 320, height: 480)
-        pop.contentViewController = NSHostingController(rootView: PopoverView(prayerVM: menuBarVM, settingsVM: settingsVM))
-        popover = pop
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 480),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.level = .popUpMenu
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.isReleasedWhenClosed = false
+        panel.animationBehavior = .utilityWindow
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        var popoverView = PopoverView(prayerVM: menuBarVM, settingsVM: settingsVM)
+        popoverView.onOpenApp = { [weak self] in
+            self?.closePopover()
+            self?.showMainWindow()
+        }
+        popoverView.onOpenSettings = { [weak self] in
+            self?.closePopover()
+            self?.showMainWindow(tab: .settings)
+        }
+        panel.contentView = NSHostingView(rootView: popoverView)
+        popoverPanel = panel
     }
 
     @objc private func togglePopover() {
-        guard let button = statusItem?.button, let pop = popover else { return }
+        guard let button = statusItem?.button, let panel = popoverPanel else { return }
 
-        if pop.isShown {
-            pop.performClose(nil)
+        if panel.isVisible {
+            closePopover()
         } else {
-            pop.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            pop.contentViewController?.view.window?.makeKey()
+            if let buttonWindow = button.window,
+               let screen = buttonWindow.screen {
+                let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+                let x = buttonRect.midX - panel.frame.width / 2
+                let y = buttonRect.minY - panel.frame.height - 4
+                // Keep panel within screen bounds
+                let clampedX = min(max(x, screen.visibleFrame.minX), screen.visibleFrame.maxX - panel.frame.width)
+                panel.setFrameOrigin(NSPoint(x: clampedX, y: y))
+            }
+            panel.contentView?.wantsLayer = true
+            panel.alphaValue = 0
+            panel.orderFront(nil)
+
+            DispatchQueue.main.async {
+                // Fade in
+                NSAnimationContext.beginGrouping()
+                NSAnimationContext.current.duration = 0.2
+                panel.animator().alphaValue = 1
+                NSAnimationContext.endGrouping()
+
+                // Spring slide-down from menu bar
+                if let layer = panel.contentView?.layer {
+                    let spring = CASpringAnimation(keyPath: "position.y")
+                    spring.fromValue = layer.position.y + 20
+                    spring.toValue   = layer.position.y
+                    spring.stiffness = 280
+                    spring.damping   = 22
+                    spring.mass      = 1.0
+                    spring.initialVelocity = 0
+                    spring.duration  = spring.settlingDuration
+                    layer.add(spring, forKey: "springIn")
+                }
+            }
+            popoverEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+                self?.closePopover()
+            }
+        }
+    }
+
+    private func closePopover() {
+        guard let panel = popoverPanel else { return }
+        panel.orderOut(nil)
+        if let monitor = popoverEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            popoverEventMonitor = nil
         }
     }
 
     // MARK: - Main Window
 
-    func showMainWindow() {
+    func showMainWindow(tab: SidebarItem = .today) {
         if let existing = mainWindowController {
             existing.window?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+            NotificationCenter.default.post(name: .miqatSwitchTab, object: tab)
             return
         }
         let window = NSWindow(
@@ -187,7 +250,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         window.title = "Miqat"
         window.titlebarAppearsTransparent = false
         window.center()
-        window.contentView = NSHostingView(rootView: MainWindowView()
+        window.contentView = NSHostingView(rootView: MainWindowView(initialTab: tab)
             .environment(settingsVM)
             .environment(menuBarVM)
             .environment(locationVM)
