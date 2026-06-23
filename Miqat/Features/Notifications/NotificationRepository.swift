@@ -89,11 +89,11 @@ final class NotificationRepository {
 
     private func defaultPrayerConfigs() -> [PrayerNotifConfig] {
         [
-            PrayerNotifConfig(referenceTime: .fajr,    enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
-            PrayerNotifConfig(referenceTime: .dhuhr,   enabled: true, xMinutes: 20, atPrayerTime: false, zEnabled: true, zMinutes: 30, sound: .systemDefault),
-            PrayerNotifConfig(referenceTime: .asr,     enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
-            PrayerNotifConfig(referenceTime: .maghrib, enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 10, sound: .systemDefault),
-            PrayerNotifConfig(referenceTime: .isha,    enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
+            PrayerNotifConfig(prayer: .fajr,    enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
+            PrayerNotifConfig(prayer: .dhuhr,   enabled: true, xMinutes: 20, atPrayerTime: false, zEnabled: true, zMinutes: 30, sound: .systemDefault),
+            PrayerNotifConfig(prayer: .asr,     enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
+            PrayerNotifConfig(prayer: .maghrib, enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 10, sound: .systemDefault),
+            PrayerNotifConfig(prayer: .isha,    enabled: true, xMinutes: 20, atPrayerTime: true,  zEnabled: true, zMinutes: 15, sound: .systemDefault),
         ]
     }
 }

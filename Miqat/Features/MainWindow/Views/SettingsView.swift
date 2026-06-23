@@ -128,6 +128,7 @@ where T.RawValue == String, T.AllCases: RandomAccessCollection {
                                 selection == option ? iconColor : Color.clear,
                                 in: RoundedRectangle(cornerRadius: 6)
                             )
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -144,6 +145,7 @@ where T.RawValue == String, T.AllCases: RandomAccessCollection {
 
 struct SettingsView: View {
     @Environment(SettingsViewModel.self)  private var vm
+    @Environment(ThemeViewModel.self)     private var themeVM
     @Environment(PrayerTimeViewModel.self) private var previewVM
 
     // Prayer calculation — read from global VM
@@ -161,6 +163,7 @@ struct SettingsView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
 
+                    calendarCard
                     calculationCard
                     menuBarCard
                     appearanceCard
@@ -213,6 +216,7 @@ struct SettingsView: View {
                 icon: "person.fill",
                 iconColor: AppColor.accentTeal,
                 title: "Madhab",
+                subtitle: "Affects Asr prayer time",
                 selection: vm.binding(for: \.madhab)
             )
 
@@ -222,6 +226,7 @@ struct SettingsView: View {
                 icon: "globe",
                 iconColor: AppColor.accentPurple,
                 title: "High Latitude",
+                subtitle: "For regions near the poles",
                 selection: vm.binding(for: \.highLatRule)
             )
 
@@ -244,23 +249,34 @@ struct SettingsView: View {
             .padding(.top, 10)
             .padding(.bottom, 2)
 
-            AdjustmentRow(label: "Fajr",    icon: Prayer.fajr.icon,     iconColor: Prayer.fajr.color,   value: vm.binding(for: \.fajrAdjustment))
+            AdjustmentRow(label: "Fajr",    icon: Prayer.fajr.icon,     iconColor: Prayer.fajr.color,    value: vm.binding(for: \.fajrAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: ReferenceTime.sunrise.label, icon: ReferenceTime.sunrise.icon, iconColor: ReferenceTime.sunrise.color, value: vm.binding(for: \.sunriseAdjustment))
+            AdjustmentRow(label: Prayer.sunrise.label, icon: Prayer.sunrise.icon, iconColor: Prayer.sunrise.color, value: vm.binding(for: \.sunriseAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Dhuhr",   icon: Prayer.dhuhr.icon,    iconColor: Prayer.dhuhr.color, value: vm.binding(for: \.dhuhrAdjustment))
+            AdjustmentRow(label: "Dhuhr",   icon: Prayer.dhuhr.icon,    iconColor: Prayer.dhuhr.color,   value: vm.binding(for: \.dhuhrAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Asr",     icon: Prayer.asr.icon,      iconColor: Prayer.asr.color,   value: vm.binding(for: \.asrAdjustment))
+            AdjustmentRow(label: "Asr",     icon: Prayer.asr.icon,      iconColor: Prayer.asr.color,     value: vm.binding(for: \.asrAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Maghrib", icon: Prayer.maghrib.icon, iconColor: Prayer.maghrib.color, value: vm.binding(for: \.maghribAdjustment))
+            AdjustmentRow(label: "Maghrib", icon: Prayer.maghrib.icon,  iconColor: Prayer.maghrib.color, value: vm.binding(for: \.maghribAdjustment))
             Divider().padding(.leading, 58).opacity(0.25)
-            AdjustmentRow(label: "Isha",    icon: Prayer.isha.icon,     iconColor: Prayer.isha.color,  value: vm.binding(for: \.ishaAdjustment))
+            AdjustmentRow(label: "Isha",    icon: Prayer.isha.icon,     iconColor: Prayer.isha.color,    value: vm.binding(for: \.ishaAdjustment))
 
-            Divider().padding(.horizontal, 16).opacity(0.4)
+        }
+    }
 
-            AdjustmentRow(label: "Hijri date", icon: "calendar",     iconColor: AppColor.accentTeal,
-                          value: vm.binding(for: \.hijriAdjustment), range: -3...3)
-                .padding(.bottom, 2)
+    // MARK: Calendar card
+
+    private var calendarCard: some View {
+        settingsCard(title: "Calendar", icon: "calendar", iconColor: AppColor.accentTeal) {
+            AdjustmentRow(
+                label: "Date Adjustment",
+                subtitle: "For local moon sighting",
+                icon: "moon.stars",
+                iconColor: AppColor.accentTeal,
+                value: vm.binding(for: \.hijriAdjustment),
+                range: -2...2
+            )
+            .padding(.bottom, 2)
         }
     }
 
@@ -273,6 +289,7 @@ struct SettingsView: View {
                 icon: "timer",
                 iconColor: AppColor.accentTeal,
                 title: "Display",
+                subtitle: "What shows in the menu bar",
                 selection: vm.binding(for: \.menuDisplay)
             )
 
@@ -376,12 +393,7 @@ struct SettingsView: View {
     // MARK: Appearance card
     private var appearanceCard: some View {
         settingsCard(title: "Appearance", icon: "paintbrush.fill", iconColor: AppColor.accentGold) {
-            SettingsSegmentRow(
-                icon: "circle.lefthalf.filled",
-                iconColor: AppColor.accentGold,
-                title: "Theme",
-                selection: vm.binding(for: \.appTheme)
-            )
+            ThemePickerRow(selection: themeVM.binding(for: \.appTheme), accentColor: themeVM.accentColor)
 
             Divider().padding(.leading, 58).opacity(0.3)
 
@@ -399,16 +411,15 @@ struct SettingsView: View {
                 Spacer()
 
                 HStack(spacing: 8) {
-                    ForEach(Array(AccentColor.options.enumerated()), id: \.offset) { index, pair in
+                    ForEach(Array(AppColor.accentOptions.enumerated()), id: \.offset) { index, pair in
                         Button {
                             withAnimation(.spring(duration: 0.18)) {
-                                vm.update { $0.accentColorIndex = index }
-                                AccentColor.save(index: index)
+                                themeVM.update { $0.accentColorIndex = index }
                             }
                         } label: {
                             ZStack {
                                 Circle().fill(pair.1).frame(width: 22, height: 22)
-                                if vm.settings.accentColorIndex == index {
+                                if themeVM.settings.accentColorIndex == index {
                                     Circle()
                                         .stroke(Color.white, lineWidth: 2)
                                         .frame(width: 22, height: 22)
@@ -546,7 +557,7 @@ struct SettingsView: View {
         previewVM.load(location: location)
     }
 
-    private var previewPrayerName: String { previewVM.nextPrayerEntry?.referenceTime.rawValue ?? "--" }
+    private var previewPrayerName: String { previewVM.nextPrayerEntry?.prayer.rawValue ?? "--" }
     private var previewTimeText: String   { previewPrayerName + "  " + (previewVM.nextPrayerEntry?.time ?? "--:--") }
     private var previewTimeOnly: String   { previewVM.nextPrayerEntry?.time ?? "--:--" }
     private var previewCountdownText: String {

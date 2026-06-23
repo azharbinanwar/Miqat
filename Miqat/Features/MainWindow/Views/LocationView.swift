@@ -13,9 +13,9 @@ struct LocationRow: View {
         HStack(spacing: 14) {
             Image(systemName: location.icon)
                 .font(.system(size: 18))
-                .foregroundStyle(AccentColor.current)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 40, height: 40)
-                .background(AccentColor.current.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(location.label)
@@ -31,11 +31,11 @@ struct LocationRow: View {
                 // Radio circle
                 ZStack {
                     Circle()
-                        .strokeBorder(isActive ? AccentColor.current : Color.secondary.opacity(0.25), lineWidth: 1.5)
+                        .strokeBorder(isActive ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: 1.5)
                         .frame(width: 20, height: 20)
                     if isActive {
                         Circle()
-                            .fill(AccentColor.current)
+                            .fill(Color.accentColor)
                             .frame(width: 12, height: 12)
                     }
                 }
@@ -53,7 +53,7 @@ struct LocationRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(isActive ? AccentColor.current.opacity(0.05) : Color.clear)
+        .background(isActive ? Color.accentColor.opacity(0.05) : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture { if !isActive { onSelect() } }
     }
@@ -75,7 +75,7 @@ struct LocationView: View {
                     locationsCard(
                         title: "Default Cities",
                         icon: "building.columns.fill",
-                        iconColor: AccentColor.current,
+                        iconColor: Color.accentColor,
                         items: vm.seedLocations,
                         deleteable: false
                     )
@@ -182,9 +182,9 @@ struct LocationView: View {
             HStack(spacing: 14) {
                 Image(systemName: vm.fetchState == .fetching ? "location.fill" : "location.circle")
                     .font(.system(size: 16))
-                    .foregroundStyle(AccentColor.current)
+                    .foregroundStyle(Color.accentColor)
                     .frame(width: 36, height: 36)
-                    .background(AccentColor.current.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+                    .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Use current location")
@@ -212,11 +212,11 @@ struct LocationView: View {
                     } label: {
                         Text(vm.fetchState == .denied ? "Open Settings" : vm.fetchState == .failed ? "Retry" : "Detect")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(vm.fetchState == .failed || vm.fetchState == .denied ? AppColor.alert : AccentColor.current)
+                            .foregroundStyle(vm.fetchState == .failed || vm.fetchState == .denied ? AppColor.alert : Color.accentColor)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 5)
                             .background(
-                                (vm.fetchState == .failed || vm.fetchState == .denied ? AppColor.alert : AccentColor.current).opacity(0.1),
+                                (vm.fetchState == .failed || vm.fetchState == .denied ? AppColor.alert : Color.accentColor).opacity(0.1),
                                 in: Capsule()
                             )
                     }
@@ -233,9 +233,9 @@ struct LocationView: View {
                 HStack(spacing: 14) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16))
-                        .foregroundStyle(AccentColor.current)
+                        .foregroundStyle(Color.accentColor)
                         .frame(width: 36, height: 36)
-                        .background(AccentColor.current.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+                        .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
 
                     Text("Add City")
                         .font(.system(size: 13, weight: .medium))
@@ -245,9 +245,9 @@ struct LocationView: View {
 
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(AccentColor.current.opacity(0.5))
+                        .foregroundStyle(Color.accentColor.opacity(0.5))
                         .frame(width: 28, height: 28)
-                        .background(AccentColor.current.opacity(0.08), in: Circle())
+                        .background(Color.accentColor.opacity(0.08), in: Circle())
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)

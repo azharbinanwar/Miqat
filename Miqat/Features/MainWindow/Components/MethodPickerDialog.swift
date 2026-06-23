@@ -125,7 +125,7 @@ struct MethodPickerDialog: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(AccentColor.current)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
             .padding(.horizontal, 20)

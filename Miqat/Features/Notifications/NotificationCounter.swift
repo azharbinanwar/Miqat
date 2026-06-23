@@ -6,9 +6,9 @@ struct NotificationGap {
     let type: GapType
 
     enum GapType {
-        case prayerX(ReferenceTime)
-        case prayerAtTime(ReferenceTime)
-        case prayerJamaat(ReferenceTime)
+        case prayerX(Prayer)
+        case prayerAtTime(Prayer)
+        case prayerJamaat(Prayer)
         case mulk
         case kahf(KahfAnchor)
         case jumuahX
@@ -56,7 +56,7 @@ final class NotificationCounter {
 
         for config in vm.prayerConfigs {
             guard config.enabled else { continue }
-            let ref = config.referenceTime
+            let ref = config.prayer
 
             for dayOffset in 0..<3 {
                 guard let day = Calendar.current.date(byAdding: .day, value: dayOffset, to: today) else { continue }
@@ -125,10 +125,10 @@ final class NotificationCounter {
 
         for config in vm.prayerConfigs {
             guard config.enabled else {
-                lines.append("\(config.referenceTime.rawValue): disabled")
+                lines.append("\(config.prayer.rawValue): disabled")
                 continue
             }
-            let ref = config.referenceTime
+            let ref = config.prayer
             let xCount      = days.filter { pendingIDs.contains("prayer.\(ref.rawValue).x.\(dateKey($0))") }.count
             let atCount     = config.atPrayerTime ? days.filter { pendingIDs.contains("prayer.\(ref.rawValue).attime.\(dateKey($0))") }.count : -1
             let jamaatCount = config.zEnabled     ? days.filter { pendingIDs.contains("prayer.\(ref.rawValue).jamaat.\(dateKey($0))") }.count : -1

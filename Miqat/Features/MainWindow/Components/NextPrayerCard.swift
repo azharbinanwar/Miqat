@@ -1,18 +1,17 @@
 import SwiftUI
 
 struct NextPrayerCard: View {
+    @Environment(PrayerTimeViewModel.self) private var prayerVM
     @State private var iPrayed = false
+
+    private var activePeriod: Prayer {
+        prayerVM.currentPrayer ?? prayerVM.nextPrayerEntry?.prayer ?? .asr
+    }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16)
-                .fill(
-                    LinearGradient(
-                        colors: ReferenceTime.asr.gradient,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(LinearGradient(colors: activePeriod.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
 
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -21,11 +20,11 @@ struct NextPrayerCard: View {
                         .foregroundStyle(.white.opacity(0.6))
                         .tracking(2)
 
-                    Text(MockPrayerData.nextPrayer)
+                    Text(prayerVM.nextPrayerEntry?.label ?? "--")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.white)
 
-                    Text(MockPrayerData.nextPrayerTime)
+                    Text(prayerVM.nextPrayerEntry?.time ?? "--:--")
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.7))
 
@@ -40,7 +39,7 @@ struct NextPrayerCard: View {
                             Text(iPrayed ? "Prayed ✓" : "I Prayed")
                                 .font(.system(size: 13, weight: .semibold))
                         }
-                        .foregroundStyle(iPrayed ? ReferenceTime.asr.color : .white)
+                        .foregroundStyle(iPrayed ? activePeriod.color : .white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(iPrayed ? .white : .white.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
@@ -52,7 +51,7 @@ struct NextPrayerCard: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(MockPrayerData.countdown)
+                    Text(prayerVM.countdownText)
                         .font(.system(size: 52, weight: .heavy, design: .monospaced))
                         .foregroundStyle(.white)
                     Text("hours remaining")

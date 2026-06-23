@@ -1,79 +1,12 @@
 import SwiftUI
 
-// MARK: - Generic Tiles
-
-// One generic prayer row tile for the widget list
-struct WidgetPrayerRow: View {
-    let entry: PrayerEntry
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: entry.referenceTime.icon)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(rowIconColor)
-                .frame(width: 16)
-
-            Text(entry.label)
-                .font(.system(size: 13, weight: entry.isCurrent ? .semibold : .regular))
-                .foregroundStyle(rowTextColor)
-
-            Spacer()
-
-            Text(entry.time)
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(rowTimeColor)
-
-            statusDot
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 7)
-        .background(entry.isCurrent ? Color.white.opacity(0.1) : Color.clear)
-    }
-
-    private var rowIconColor: Color {
-        entry.isCurrent ? .white :
-        entry.status == .prayed || entry.status == .passed ? .white.opacity(0.3) : .white.opacity(0.6)
-    }
-
-    private var rowTextColor: Color {
-        entry.isCurrent ? .white :
-        entry.status == .prayed || entry.status == .passed ? .white.opacity(0.35) : .white.opacity(0.75)
-    }
-
-    private var rowTimeColor: Color {
-        entry.isAlert   ? AppColor.softRed :
-        entry.isCurrent ? .white : .white.opacity(0.5)
-    }
-
-    @ViewBuilder
-    private var statusDot: some View {
-        switch entry.status {
-        case .prayed:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.5))
-        case .current:
-            Circle()
-                .fill(Color.white)
-                .frame(width: 6, height: 6)
-        case .alert:
-            Circle()
-                .fill(AppColor.softRed)
-                .frame(width: 6, height: 6)
-        default:
-            Circle()
-                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                .frame(width: 6, height: 6)
-        }
-    }
-}
-
 // MARK: - Floating Panel View
 
 struct FloatingPanelView: View {
     let prayerVM: PrayerTimeViewModel
     var onOpenSettings: () -> Void = {}
     @Environment(SettingsViewModel.self) private var settingsVM
+    @Environment(HijriCalendarViewModel.self) private var hijriVM
     @State private var prayed = false
     @State private var showContextMenu = false
     @State private var locationVM = LocationViewModel.shared
@@ -161,7 +94,7 @@ struct FloatingPanelView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 1) {
-                Text(MockPrayerData.hijriDate)
+                Text(hijriVM.today.formatted)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.5))
                 Text(locationVM.activeCityName)
@@ -175,7 +108,7 @@ struct FloatingPanelView: View {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 10))
                     .foregroundStyle(AppColor.softAmber)
-                Text("\(MockPrayerData.streak)d")
+                Text("--")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)
             }
@@ -240,11 +173,11 @@ struct FloatingPanelView: View {
     }
 
     // MARK: Gradient — mirrors PopoverView exactly
-    private var activePeriod: ReferenceTime {
-        prayerVM.currentPrayer ?? prayerVM.nextPrayerEntry?.referenceTime ?? hourFallback
+    private var activePeriod: Prayer {
+        prayerVM.currentPrayer ?? prayerVM.nextPrayerEntry?.prayer ?? hourFallback
     }
 
-    private var hourFallback: ReferenceTime {
+    private var hourFallback: Prayer {
         switch currentHour {
         case 3..<6:   return .fajr
         case 6..<8:   return .sunrise

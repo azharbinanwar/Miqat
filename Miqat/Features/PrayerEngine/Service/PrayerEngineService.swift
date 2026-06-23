@@ -8,7 +8,7 @@ protocol PrayerEngineServiceProtocol {
         settings: PrayerCalculationSettings
     ) -> [PrayerEntry]
 
-    func currentPrayer(from entries: [PrayerEntry], at date: Date) -> ReferenceTime?
+    func currentPrayer(from entries: [PrayerEntry], at date: Date) -> Prayer?
     func nextPrayer(from entries: [PrayerEntry], at date: Date) -> PrayerEntry?
 }
 
@@ -46,21 +46,21 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
 
         let formatter = timeFormatter(for: date)
 
-        let entries = ReferenceTime.allCases.map { ref -> PrayerEntry in
+        let entries = Prayer.allCases.map { ref -> PrayerEntry in
             let adhanPrayer = ref.adhanPrayer
             let rawDate = prayerTimes.time(for: adhanPrayer)
             let status: PrayerStatus = {
                 let nextP    = prayerTimes.nextPrayer(at: date)
                 let currentP = prayerTimes.currentPrayer(at: date)
-                if let nextP, let nextRef = ReferenceTime(adhanPrayer: nextP), ref == nextRef       { return .alert }
-                if let currentP, let curRef = ReferenceTime(adhanPrayer: currentP), ref == curRef   { return .current }
+                if let nextP, let nextRef = Prayer(adhanPrayer: nextP), ref == nextRef       { return .alert }
+                if let currentP, let curRef = Prayer(adhanPrayer: currentP), ref == curRef   { return .current }
                 if rawDate < date { return .passed }
                 return .upcoming
             }()
-            let idx = ReferenceTime.allCases.firstIndex(of: ref) ?? 0
+            let idx = Prayer.allCases.firstIndex(of: ref) ?? 0
             return PrayerEntry(
                 id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", idx))")!,
-                referenceTime: ref,
+                prayer: ref,
                 time: formatter.string(from: rawDate),
                 date: rawDate,
                 madhab: settings.madhab.rawValue,
@@ -71,8 +71,8 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
         return entries
     }
 
-    func currentPrayer(from entries: [PrayerEntry], at date: Date) -> ReferenceTime? {
-        entries.first(where: { $0.status == .current })?.referenceTime
+    func currentPrayer(from entries: [PrayerEntry], at date: Date) -> Prayer? {
+        entries.first(where: { $0.status == .current })?.prayer
     }
 
     func nextPrayer(from entries: [PrayerEntry], at date: Date) -> PrayerEntry? {

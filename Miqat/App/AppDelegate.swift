@@ -13,8 +13,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     private var onboardingWindow: NSWindow?
     private var menuBarVM     : PrayerTimeViewModel!
     private var settingsVM    : SettingsViewModel!
+    private var themeVM       : ThemeViewModel!
     private var locationVM    : LocationViewModel!
     private var notificationVM: NotificationViewModel!
+    private var hijriVM       : HijriCalendarViewModel!
     private var statusTimer   : Timer?
     private var wakeObserver  : Any?
 
@@ -30,6 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
         NotificationCenter.default.addObserver(forName: .settingsDidChange, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
+            hijriVM.update(offset: settingsVM.settings.hijriAdjustment)
             let mode = settingsVM.settings.floatingPanelMode
             if mode == .off {
                 widgetController?.close()
@@ -201,7 +204,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             self?.closePopover()
             self?.showMainWindow(tab: .settings)
         }
-        panel.contentView = NSHostingView(rootView: popoverView)
+        panel.contentView = NSHostingView(rootView: popoverView.environment(hijriVM).environment(themeVM))
         popoverPanel = panel
     }
 
@@ -279,9 +282,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         window.center()
         window.contentView = NSHostingView(rootView: MainWindowView(initialTab: tab)
             .environment(settingsVM)
+            .environment(themeVM)
             .environment(menuBarVM)
             .environment(locationVM)
-            .environment(notificationVM))
+            .environment(notificationVM)
+            .environment(hijriVM))
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         mainWindowController = NSWindowController(window: window)
@@ -302,8 +307,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
         let storage = ServiceLocator.shared.resolve(SettingsStorageProtocol.self)
         self.settingsVM     = SettingsViewModel(storage: storage)
+        self.themeVM        = ThemeViewModel()
         self.locationVM     = .shared
         self.notificationVM = NotificationViewModel()
+        self.hijriVM        = HijriCalendarViewModel(offset: storage.load()?.hijriAdjustment ?? 0)
 
         ServiceLocator.shared.register(PrayerEngineServiceProtocol.self) { PrayerEngineService() }
     }
@@ -338,7 +345,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         panel.isMovableByWindowBackground = true
         panel.contentView             = NSHostingView(rootView: FloatingPanelView(prayerVM: menuBarVM, onOpenSettings: { [weak self] in
             self?.showMainWindow(tab: .settings)
-        }).environment(settingsVM))
+        }).environment(settingsVM).environment(themeVM).environment(hijriVM))
 
         let defaults = UserDefaults.standard
         if defaults.object(forKey: Keys.Defaults.floatingPanelX) != nil {

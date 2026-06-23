@@ -38,11 +38,11 @@ enum KahfAnchor: String, CaseIterable, Codable, Identifiable {
 
     var color: Color {
         switch self {
-        case .thurMaghrib: return ReferenceTime.maghrib.color
-        case .thurIsha:    return ReferenceTime.isha.color
-        case .friFajr:     return ReferenceTime.fajr.color
-        case .friDhuhr:    return ReferenceTime.dhuhr.color
-        case .friAsr:      return ReferenceTime.asr.color
+        case .thurMaghrib: return Prayer.maghrib.color
+        case .thurIsha:    return Prayer.isha.color
+        case .friFajr:     return Prayer.fajr.color
+        case .friDhuhr:    return Prayer.dhuhr.color
+        case .friAsr:      return Prayer.asr.color
         case .customTime:  return AppColor.accentGold
         }
     }

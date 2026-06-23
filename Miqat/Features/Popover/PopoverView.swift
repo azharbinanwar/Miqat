@@ -6,22 +6,23 @@ struct PopoverPrayerRow: View {
     let entry: PrayerEntry
     let countdown: String
 
-    private var timeStatus:    PrayerTimeStatus    { entry.timeStatus }
-    private var trackerStatus: PrayerTrackerStatus { entry.trackerStatus }
+    private var timeStatus: PrayerTimeStatus { entry.timeStatus }
     private var isCurrent: Bool { timeStatus == .current }
     private var isSoon:    Bool { timeStatus == .soon }
+    private var isPrayed:  Bool { entry.status == .prayed }
+    private var isMissed:  Bool { entry.status == .passed }
 
     var body: some View {
         HStack(spacing: 0) {
             // Left accent bar — current only
             RoundedRectangle(cornerRadius: 2)
-                .fill(isCurrent ? entry.referenceTime.color : Color.clear)
+                .fill(isCurrent ? entry.prayer.color : Color.clear)
                 .frame(width: 3)
                 .padding(.vertical, 8)
 
             HStack(spacing: 10) {
                 // Prayer identity icon
-                Image(systemName: entry.referenceTime.icon)
+                Image(systemName: entry.prayer.icon)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(rowIconColor)
                     .frame(width: 18)
@@ -47,31 +48,33 @@ struct PopoverPrayerRow: View {
                 }
 
                 // Tracker badge (PRAYED / MISSED)
-                if let label = trackerStatus.badgeLabel {
+                if isPrayed || isMissed {
                     HStack(spacing: 3) {
-                        Image(systemName: trackerStatus == .prayed ? "checkmark" : "xmark")
+                        Image(systemName: isPrayed ? "checkmark" : "xmark")
                             .font(.system(size: 7, weight: .bold))
-                        Text(label)
+                        Text(isPrayed ? "PRAYED" : "MISSED")
                             .font(.system(size: 9, weight: .bold))
                     }
-                    .foregroundStyle(trackerStatus.color)
+                    .foregroundStyle(isPrayed ? AppColor.softGreen : AppColor.softRed)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(trackerStatus.badgeBackground, in: Capsule())
+                    .background(
+                        (isPrayed ? AppColor.softGreen : AppColor.softRed).opacity(0.18),
+                        in: Capsule()
+                    )
                 }
 
-                // Show prayer start time — countdown shown at top of popover only
                 Text(entry.time)
                     .font(.system(size: 12, weight: isCurrent ? .bold : .regular, design: .monospaced))
                     .foregroundStyle(isCurrent ? countdownColor : rowTimeColor)
 
-                // Tracker status icon
-                Image(systemName: trackerStatus.icon)
+                Image(systemName: isPrayed ? "checkmark.circle.fill" : isMissed ? "xmark.circle" : "circle.dotted")
                     .font(.system(size: isCurrent ? 8 : 13))
                     .foregroundStyle(
-                        isCurrent
-                            ? entry.referenceTime.color
-                            : trackerStatus.color
+                        isCurrent   ? entry.prayer.color :
+                        isPrayed    ? AppColor.softGreen :
+                        isMissed    ? AppColor.softRed :
+                                      Color.white.opacity(0.3)
                     )
             }
             .padding(.leading, 10)
@@ -80,10 +83,10 @@ struct PopoverPrayerRow: View {
         }
         .background {
             if isCurrent {
-                entry.referenceTime.color.opacity(0.15)
-            } else if trackerStatus == .prayed {
+                entry.prayer.color.opacity(0.15)
+            } else if isPrayed {
                 AppColor.softGreen.opacity(0.07)
-            } else if trackerStatus == .missed {
+            } else if isMissed {
                 AppColor.softRed.opacity(0.07)
             } else {
                 Color.clear
@@ -95,7 +98,7 @@ struct PopoverPrayerRow: View {
 
     private var rowIconColor: Color {
         switch timeStatus {
-        case .current:  return entry.referenceTime.color
+        case .current:  return entry.prayer.color
         case .soon:     return AppColor.softAmber
         default:        return .white.opacity(0.65)
         }
@@ -137,6 +140,8 @@ struct PopoverView: View {
     let settingsVM: SettingsViewModel
     var onOpenApp: () -> Void = {}
     var onOpenSettings: () -> Void = {}
+    @Environment(HijriCalendarViewModel.self) private var hijriVM
+    @Environment(ThemeViewModel.self)          private var themeVM
     @State private var prayed          = false
     @State private var showLocations = false
     @State private var vm            = LocationViewModel.shared
@@ -162,22 +167,16 @@ struct PopoverView: View {
         .fixedSize(horizontal: true, vertical: true)
         .animation(.spring(duration: 0.22), value: showLocations)
         .preferredColorScheme(appThemeColorScheme)
-        .tint(AccentColor.current)
+        .tint(themeVM.accentColor)
     }
 
-    private var appThemeColorScheme: ColorScheme? {
-        switch settingsVM.settings.appTheme {
-        case .light:  return .light
-        case .dark:   return .dark
-        case .system: return nil
-        }
-    }
+    private var appThemeColorScheme: ColorScheme? { themeVM.colorScheme }
 
     // MARK: Header
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 1) {
-                Text(MockPrayerData.hijriDate)
+                Text(hijriVM.today.formatted)
                     .font(.system(size: 10))
                     .foregroundStyle(.white.opacity(0.5))
                 Text(vm.activeCityName)
@@ -363,13 +362,13 @@ struct PopoverView: View {
 
     // MARK: Colours — driven by current prayer from the engine
 
-    private var activePeriod: ReferenceTime {
+    private var activePeriod: Prayer {
         prayerVM.currentPrayer
-            ?? prayerVM.nextPrayerEntry?.referenceTime
+            ?? prayerVM.nextPrayerEntry?.prayer
             ?? hourFallback
     }
 
-    private var hourFallback: ReferenceTime {
+    private var hourFallback: Prayer {
         switch currentHour {
         case 3..<6:   return .fajr
         case 6..<8:   return .sunrise

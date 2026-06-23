@@ -10,7 +10,7 @@ final class NotificationService {
 
     // MARK: - Identifier namespaces
 
-    private func prayerIDs(_ ref: ReferenceTime) -> [String] {
+    private func prayerIDs(_ ref: Prayer) -> [String] {
         ["prayer.\(ref.rawValue).x",
          "prayer.\(ref.rawValue).attime",
          "prayer.\(ref.rawValue).jamaat"]
@@ -23,7 +23,7 @@ final class NotificationService {
 
     // MARK: - Cancel (surgical, prefix-based so date-keyed IDs are always caught)
 
-    func cancelPrayer(_ ref: ReferenceTime) async {
+    func cancelPrayer(_ ref: Prayer) async {
         let prefix = "prayer.\(ref.rawValue)."
         await cancelByPrefix(prefix)
     }
@@ -61,7 +61,7 @@ final class NotificationService {
         location: Location,
         settings: PrayerCalculationSettings
     ) async {
-        await cancelPrayer(config.referenceTime)
+        await cancelPrayer(config.prayer)
         guard config.enabled else { return }
 
         let now   = Date()
@@ -70,12 +70,12 @@ final class NotificationService {
         for dayOffset in 0..<3 {
             guard let date = Calendar.current.date(byAdding: .day, value: dayOffset, to: today) else { continue }
             let entries = engine.calculateTimes(for: date, location: location, settings: settings)
-            guard let entry = entries.first(where: { $0.referenceTime == config.referenceTime }),
+            guard let entry = entries.first(where: { $0.prayer == config.prayer }),
                   let prayerDate = entry.date else { continue }
 
-            let name = config.referenceTime.label
+            let name = config.prayer.label
             let dk   = dateKey(for: date)
-            let ref  = config.referenceTime.rawValue
+            let ref  = config.prayer.rawValue
 
             if let xDate = Calendar.current.date(byAdding: .minute, value: -config.xMinutes, to: prayerDate),
                xDate > now {
@@ -114,7 +114,7 @@ final class NotificationService {
         for dayOffset in 0..<3 {
             guard let date = Calendar.current.date(byAdding: .day, value: dayOffset, to: today) else { continue }
             let entries = engine.calculateTimes(for: date, location: location, settings: settings)
-            guard let ishaEntry = entries.first(where: { $0.referenceTime == .isha }),
+            guard let ishaEntry = entries.first(where: { $0.prayer == .isha }),
                   let ishaDate = ishaEntry.date,
                   let mulkDate = Calendar.current.date(byAdding: .minute, value: config.minutesAfterIsha, to: ishaDate),
                   mulkDate > Date() else { continue }
@@ -193,7 +193,7 @@ final class NotificationService {
             guard weekday == 6 else { continue }
 
             let entries = engine.calculateTimes(for: date, location: location, settings: settings)
-            guard let dhuhrEntry = entries.first(where: { $0.referenceTime == .dhuhr }),
+            guard let dhuhrEntry = entries.first(where: { $0.prayer == .dhuhr }),
                   let dhuhrDate = dhuhrEntry.date else { continue }
 
             // X before khutbah
@@ -294,13 +294,13 @@ final class NotificationService {
         // Prayers
         for config in vm.prayerConfigs {
             guard config.enabled else { continue }
-            let ref  = config.referenceTime.rawValue
-            let name = config.referenceTime.label
+            let ref  = config.prayer.rawValue
+            let name = config.prayer.label
 
             for dayOffset in 0..<3 {
                 guard let day = Calendar.current.date(byAdding: .day, value: dayOffset, to: today) else { continue }
                 let entries = engine.calculateTimes(for: day, location: location, settings: settings)
-                guard let entry = entries.first(where: { $0.referenceTime == config.referenceTime }),
+                guard let entry = entries.first(where: { $0.prayer == config.prayer }),
                       let pDate = entry.date else { continue }
 
                 let dk   = dateKey(for: day)
@@ -350,7 +350,7 @@ final class NotificationService {
                 let id = "\(mulkID).\(dateKey(for: day))"
                 guard !pendingIDs.contains(id) else { continue }
                 let entries = engine.calculateTimes(for: day, location: location, settings: settings)
-                if let ishaEntry = entries.first(where: { $0.referenceTime == .isha }),
+                if let ishaEntry = entries.first(where: { $0.prayer == .isha }),
                    let ishaDate  = ishaEntry.date,
                    let mulkDate  = Calendar.current.date(byAdding: .minute, value: vm.mulkConfig.minutesAfterIsha, to: ishaDate),
                    mulkDate > now {
@@ -391,14 +391,14 @@ final class NotificationService {
     }
 
     private func anchorDate(
-        ref: ReferenceTime,
+        ref: Prayer,
         on date: Date,
         offset: Int,
         location: Location,
         settings: PrayerCalculationSettings
     ) -> Date? {
         let entries = engine.calculateTimes(for: date, location: location, settings: settings)
-        guard let entry = entries.first(where: { $0.referenceTime == ref }),
+        guard let entry = entries.first(where: { $0.prayer == ref }),
               let entryDate = entry.date else { return nil }
         return Calendar.current.date(byAdding: .minute, value: offset, to: entryDate)
     }

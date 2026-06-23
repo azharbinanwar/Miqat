@@ -78,7 +78,7 @@ final class PrayerTimeViewModel {
 
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: date) ?? date
         let tomorrowEntries = service.calculateTimes(for: tomorrow, location: location, settings: settings)
-        tomorrowFajr = tomorrowEntries.first(where: { $0.referenceTime == .fajr })
+        tomorrowFajr = tomorrowEntries.first(where: { $0.prayer == .fajr })
     }
 
     func reloadToday() {
@@ -95,7 +95,7 @@ final class PrayerTimeViewModel {
         return items
     }
 
-    var currentPrayer: ReferenceTime? {
+    var currentPrayer: Prayer? {
         service.currentPrayer(from: entries, at: liveNow)
     }
 

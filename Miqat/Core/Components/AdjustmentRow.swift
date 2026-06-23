@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AdjustmentRow: View {
     let label: String
+    var subtitle: String? = nil
     let icon: String
     let iconColor: Color
     @Binding var value: Int
@@ -18,8 +19,15 @@ struct AdjustmentRow: View {
                 .frame(width: 28, height: 28)
                 .background(iconColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
-            Text(label)
-                .font(.system(size: 13, weight: .medium))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 13, weight: .medium))
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             Spacer()
 

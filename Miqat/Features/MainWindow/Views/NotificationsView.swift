@@ -4,7 +4,7 @@ import SwiftUI
 
 struct PrayerNotifConfig: Identifiable, Codable, Equatable {
     let id: UUID
-    let referenceTime: ReferenceTime
+    let prayer: Prayer
     var enabled: Bool
     var xMinutes: Int
     var atPrayerTime: Bool
@@ -13,10 +13,10 @@ struct PrayerNotifConfig: Identifiable, Codable, Equatable {
     var sound: AppSound
     var customSoundFilename: String?  // e.g. "my_adhan.caf" in App Support/Miqat/CustomSounds
 
-    init(referenceTime: ReferenceTime, enabled: Bool, xMinutes: Int, atPrayerTime: Bool,
+    init(prayer: Prayer, enabled: Bool, xMinutes: Int, atPrayerTime: Bool,
          zEnabled: Bool, zMinutes: Int, sound: AppSound, customSoundFilename: String? = nil) {
         self.id                  = UUID()
-        self.referenceTime       = referenceTime
+        self.prayer       = prayer
         self.enabled             = enabled
         self.xMinutes            = xMinutes
         self.atPrayerTime        = atPrayerTime
@@ -44,16 +44,16 @@ struct NotifPrayerRow: View {
 
     var body: some View {
         NotifAccordionRow(
-            icon: config.referenceTime.icon,
-            iconColor: config.referenceTime.color,
-            title: config.referenceTime.rawValue,
+            icon: config.prayer.icon,
+            iconColor: config.prayer.color,
+            title: config.prayer.rawValue,
             subtitle: summaryText,
             enabled: $config.enabled
         ) {
             AdjustmentRow(
                 label: "Remind me before",
                 icon: "bell.fill",
-                iconColor: config.referenceTime.color,
+                iconColor: config.prayer.color,
                 value: $config.xMinutes,
                 range: 20...60, step: 5, unit: "min", showSign: false
             )
@@ -62,7 +62,7 @@ struct NotifPrayerRow: View {
 
             NotifToggleRow(
                 icon: "bell.badge.fill",
-                iconColor: config.referenceTime.color,
+                iconColor: config.prayer.color,
                 label: "Alert at prayer time",
                 isOn: $config.atPrayerTime
             )
@@ -93,7 +93,7 @@ struct NotifPrayerRow: View {
             // SOUND PICKER DISABLED: UNNotificationSound custom sound unreliable on macOS (Apple bug FB11642483). Re-enable when fixed.
 //            SettingsDetailRow(
 //                icon: "speaker.wave.2.fill",
-//                iconColor: config.referenceTime.color,
+//                iconColor: config.prayer.color,
 //                title: "Sound",
 //                value: config.soundDisplayName
 //            ) { showSoundPicker = true }
@@ -174,7 +174,7 @@ struct FridayJumuahRow: View {
             // SOUND PICKER DISABLED: UNNotificationSound custom sound unreliable on macOS (Apple bug FB11642483). Re-enable when fixed.
 //            SettingsDetailRow(
 //                icon: "speaker.wave.2.fill",
-//                iconColor: ReferenceTime.dhuhr.color,
+//                iconColor: Prayer.dhuhr.color,
 //                title: "Sound",
 //                value: config.sound.displayName
 //            ) { showSoundPicker = true }
@@ -592,13 +592,13 @@ struct NotificationsView: View {
                     // Prayer rows
                     ForEach(vm.prayerConfigs) { config in
                         TestNotifItemRow(
-                            icon: config.referenceTime.icon,
-                            iconColor: config.referenceTime.color,
-                            title: config.referenceTime.label,
+                            icon: config.prayer.icon,
+                            iconColor: config.prayer.color,
+                            title: config.prayer.label,
                             subtitle: "\(config.xMinutes)m before · at prayer · jamaat +\(config.zMinutes)m"
                         ) {
                             notifManager.sendTestNotification(
-                                prayerName: config.referenceTime.label,
+                                prayerName: config.prayer.label,
                                 sound: config.sound,
                                 customSoundFilename: config.customSoundFilename
                             )
@@ -609,7 +609,7 @@ struct NotificationsView: View {
                     // Surah Mulk
                     TestNotifItemRow(
                         icon: "moon.stars.fill",
-                        iconColor: ReferenceTime.isha.color,
+                        iconColor: Prayer.isha.color,
                         title: "Surah Mulk",
                         subtitle: "After Isha +\(mulkConfig.minutesAfterIsha)m · \(mulkConfig.sound.displayName)"
                     ) {
@@ -687,9 +687,9 @@ struct NotificationsView: View {
             HStack(spacing: 14) {
                 Image(systemName: "moon.stars.fill")
                     .font(.system(size: 13))
-                    .foregroundStyle(ReferenceTime.isha.color)
+                    .foregroundStyle(Prayer.isha.color)
                     .frame(width: 28, height: 28)
-                    .background(ReferenceTime.isha.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                    .background(Prayer.isha.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Surah Mulk")
@@ -707,7 +707,7 @@ struct NotificationsView: View {
                 ))
                 .toggleStyle(.switch)
                 .controlSize(.small)
-                .tint(ReferenceTime.isha.color)
+                .tint(Prayer.isha.color)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -718,7 +718,7 @@ struct NotificationsView: View {
                 AdjustmentRow(
                     label: "After Isha",
                     icon: "moon.fill",
-                    iconColor: ReferenceTime.isha.color,
+                    iconColor: Prayer.isha.color,
                     value: Binding(
                         get: { vm.mulkConfig.minutesAfterIsha },
                         set: { val in var c = vm.mulkConfig; c.minutesAfterIsha = val; vm.updateMulkConfig(c) }
@@ -745,7 +745,7 @@ struct NotificationsView: View {
 //    private var mulkSoundRow: some View {
 //        SettingsDetailRow(
 //            icon: "speaker.wave.2.fill",
-//            iconColor: ReferenceTime.isha.color,
+//            iconColor: Prayer.isha.color,
 //            title: "Sound",
 //            value: mulkConfig.sound.displayName
 //        ) { showMulkSoundPicker = true }

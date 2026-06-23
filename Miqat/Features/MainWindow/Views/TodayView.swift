@@ -45,7 +45,7 @@ struct NextPrayerHeroCard: View {
     @State private var prayed = false
 
     private var nextEntry: PrayerEntry? { vm.nextPrayerEntry }
-    private var activePeriod: ReferenceTime { vm.currentPrayer ?? vm.nextPrayerEntry?.referenceTime ?? .dhuhr }
+    private var activePeriod: Prayer { vm.currentPrayer ?? vm.nextPrayerEntry?.prayer ?? .dhuhr }
     private var gradientColor: Color { activePeriod.color }
 
     var body: some View {
@@ -108,21 +108,21 @@ struct QuickStatsColumn: View {
     let entries: [PrayerEntry]
 
     private var sunriseTime: String {
-        entries.first(where: { $0.referenceTime == .sunrise })?.time ?? "--:--"
+        entries.first(where: { $0.prayer == .sunrise })?.time ?? "--:--"
     }
     private var maghribTime: String {
-        entries.first(where: { $0.referenceTime == .maghrib })?.time ?? "--:--"
+        entries.first(where: { $0.prayer == .maghrib })?.time ?? "--:--"
     }
 
     var body: some View {
         VStack(spacing: 12) {
-            StatCard(icon: "flame.fill",           iconColor: ReferenceTime.sunrise.color,
+            StatCard(icon: "flame.fill",           iconColor: Prayer.sunrise.color,
                      label: "Streak",              value: "-- days")
-            StatCard(icon: "checkmark.circle.fill", iconColor: ReferenceTime.fajr.color,
+            StatCard(icon: "checkmark.circle.fill", iconColor: Prayer.fajr.color,
                      label: "Today",               value: "--/5 prayed")
-            StatCard(icon: "sunrise.fill",         iconColor: ReferenceTime.sunrise.color,
+            StatCard(icon: "sunrise.fill",         iconColor: Prayer.sunrise.color,
                      label: "Sunrise",             value: sunriseTime)
-            StatCard(icon: "sunset.fill",          iconColor: ReferenceTime.maghrib.color,
+            StatCard(icon: "sunset.fill",          iconColor: Prayer.maghrib.color,
                      label: "Sunset",              value: maghribTime)
         }
         .frame(width: 160)
@@ -197,9 +197,9 @@ struct PrayerListRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: entry.referenceTime.icon)
+            Image(systemName: entry.prayer.icon)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(entry.referenceTime.color.opacity(entry.status == .prayed || entry.status == .passed ? 0.35 : 1))
+                .foregroundStyle(entry.prayer.color.opacity(entry.status == .prayed || entry.status == .passed ? 0.35 : 1))
                 .frame(width: 22)
 
             Text(entry.label)
@@ -210,7 +210,7 @@ struct PrayerListRow: View {
 
             Text(entry.time)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                .foregroundStyle(entry.isAlert ? AppColor.alert : entry.isCurrent ? entry.referenceTime.color : .secondary)
+                .foregroundStyle(entry.isAlert ? AppColor.alert : entry.isCurrent ? entry.prayer.color : .secondary)
 
             statusView
                 .frame(width: 82, alignment: .trailing)
@@ -219,7 +219,7 @@ struct PrayerListRow: View {
         .padding(.vertical, 12)
         // flat colour — no corner radius — clipShape on card handles edges
         .background(
-            entry.isCurrent ? entry.referenceTime.color.opacity(0.09) :
+            entry.isCurrent ? entry.prayer.color.opacity(0.09) :
             entry.isAlert   ? AppColor.alert.opacity(0.05) : Color.clear
         )
     }
@@ -230,7 +230,7 @@ struct PrayerListRow: View {
         case .prayed:
             Label("Prayed", systemImage: "checkmark.circle.fill")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(entry.referenceTime.color)
+                .foregroundStyle(entry.prayer.color)
         case .passed:
             Label("Passed", systemImage: "checkmark.circle")
                 .font(.system(size: 11))
@@ -241,7 +241,7 @@ struct PrayerListRow: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(entry.referenceTime.color, in: Capsule())
+                .background(entry.prayer.color, in: Capsule())
         case .upcoming:
             Text("Upcoming")
                 .font(.system(size: 11))

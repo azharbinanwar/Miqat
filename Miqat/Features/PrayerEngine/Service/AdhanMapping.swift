@@ -57,9 +57,9 @@ extension AdhanRoundingStyle {
     }
 }
 
-// MARK: - ReferenceTime ↔ Adhan.Prayer
+// MARK: - Prayer ↔ Adhan.Prayer
 
-extension ReferenceTime {
+extension Prayer {
     var adhanPrayer: Adhan.Prayer {
         switch self {
         case .fajr:    return .fajr

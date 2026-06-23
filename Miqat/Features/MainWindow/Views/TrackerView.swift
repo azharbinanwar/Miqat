@@ -2,16 +2,12 @@ import SwiftUI
 
 // MARK: - Data
 
-enum TrackerStatus {
-    case prayed, missed, upcoming, future
-}
-
 struct TrackerCell: Identifiable {
     let id = UUID()
     let prayer: Prayer
     let day: String
     let date: Int
-    let status: TrackerStatus
+    let status: PrayerTrackerStatus
     let isToday: Bool
 }
 
@@ -20,14 +16,14 @@ struct TrackerDayColumn: Identifiable {
     let day: String
     let date: Int
     let isToday: Bool
-    let cells: [TrackerStatus]   // one per prayer: fajr dhuhr asr maghrib isha
+    let cells: [PrayerTrackerStatus]   // one per prayer: fajr dhuhr asr maghrib isha
 }
 
 // MARK: - Generic Tiles
 
 // One generic cell tile — prayer × day intersection
 struct TrackerCellTile: View {
-    let status: TrackerStatus
+    let status: PrayerTrackerStatus
     let isToday: Bool
 
     var body: some View {
@@ -48,28 +44,28 @@ struct TrackerCellTile: View {
 
     private var background: Color {
         switch status {
-        case .prayed:   return AppColor.accentTeal.opacity(0.15)
-        case .missed:   return AppColor.alert.opacity(0.12)
-        case .upcoming: return AppColor.accentGold.opacity(0.1)
-        case .future:   return Color.primary.opacity(0.04)
+        case .prayedOnTime: return AppColor.accentTeal.opacity(0.15)
+        case .prayedKaza:   return AppColor.softAmber.opacity(0.15)
+        case .missed:       return AppColor.alert.opacity(0.12)
+        case .upcoming:     return AppColor.accentGold.opacity(0.1)
         }
     }
 
     private var icon: String {
         switch status {
-        case .prayed:   return "checkmark"
-        case .missed:   return "xmark"
-        case .upcoming: return "clock"
-        case .future:   return "minus"
+        case .prayedOnTime: return "checkmark"
+        case .prayedKaza:   return "checkmark"
+        case .missed:       return "xmark"
+        case .upcoming:     return "clock"
         }
     }
 
     private var iconColor: Color {
         switch status {
-        case .prayed:   return AppColor.accentTeal
-        case .missed:   return AppColor.alert
-        case .upcoming: return AppColor.accentGold
-        case .future:   return Color.primary.opacity(0.2)
+        case .prayedOnTime: return AppColor.accentTeal
+        case .prayedKaza:   return AppColor.softAmber
+        case .missed:       return AppColor.alert
+        case .upcoming:     return AppColor.accentGold
         }
     }
 }
@@ -113,13 +109,13 @@ struct TrackerView: View {
     private let prayers: [Prayer] = [.fajr, .dhuhr, .asr, .maghrib, .isha]
 
     private let columns: [TrackerDayColumn] = [
-        TrackerDayColumn(day: "MON", date: 12, isToday: false, cells: [.prayed, .prayed, .prayed, .prayed, .prayed]),
-        TrackerDayColumn(day: "TUE", date: 13, isToday: false, cells: [.prayed, .prayed, .missed, .prayed, .prayed]),
-        TrackerDayColumn(day: "WED", date: 14, isToday: false, cells: [.prayed, .prayed, .prayed, .missed, .prayed]),
-        TrackerDayColumn(day: "THU", date: 15, isToday: false, cells: [.prayed, .missed, .prayed, .prayed, .prayed]),
-        TrackerDayColumn(day: "FRI", date: 16, isToday: false, cells: [.prayed, .prayed, .prayed, .prayed, .prayed]),
-        TrackerDayColumn(day: "SAT", date: 17, isToday: false, cells: [.prayed, .prayed, .prayed, .prayed, .missed]),
-        TrackerDayColumn(day: "SUN", date: 18, isToday: true,  cells: [.prayed, .prayed, .upcoming, .upcoming, .upcoming]),
+        TrackerDayColumn(day: "MON", date: 12, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime]),
+        TrackerDayColumn(day: "TUE", date: 13, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .missed, .prayedOnTime, .prayedOnTime]),
+        TrackerDayColumn(day: "WED", date: 14, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .prayedOnTime, .missed, .prayedOnTime]),
+        TrackerDayColumn(day: "THU", date: 15, isToday: false, cells: [.prayedOnTime, .missed, .prayedOnTime, .prayedKaza, .prayedOnTime]),
+        TrackerDayColumn(day: "FRI", date: 16, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime]),
+        TrackerDayColumn(day: "SAT", date: 17, isToday: false, cells: [.prayedOnTime, .prayedKaza, .prayedOnTime, .prayedOnTime, .missed]),
+        TrackerDayColumn(day: "SUN", date: 18, isToday: true,  cells: [.prayedOnTime, .prayedOnTime, .upcoming, .upcoming, .upcoming]),
     ]
 
     var body: some View {
@@ -199,12 +195,12 @@ struct TrackerView: View {
         (1...30).map { day in
             let isPast   = day < 18
             let isToday  = day == 18
-            let statuses: [TrackerStatus] = isPast
-                ? [.prayed, day % 5 == 0 ? .missed : .prayed, day % 4 == 0 ? .missed : .prayed,
-                   day % 7 == 0 ? .missed : .prayed, day % 3 == 0 ? .missed : .prayed]
+            let statuses: [PrayerTrackerStatus] = isPast
+                ? [.prayedOnTime, day % 5 == 0 ? .missed : .prayedOnTime, day % 4 == 0 ? .missed : .prayedOnTime,
+                   day % 7 == 0 ? .missed : .prayedOnTime, day % 3 == 0 ? .missed : .prayedOnTime]
                 : isToday
-                    ? [.prayed, .prayed, .upcoming, .upcoming, .upcoming]
-                    : [.future, .future, .future, .future, .future]
+                    ? [.prayedOnTime, .prayedOnTime, .upcoming, .upcoming, .upcoming]
+                    : [.upcoming, .upcoming, .upcoming, .upcoming, .upcoming]
             return TrackerDayColumn(day: "", date: day, isToday: isToday, cells: statuses)
         }
     }

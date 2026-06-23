@@ -12,7 +12,7 @@ struct DayEntry: Identifiable {
 
 struct MonthlyPrayerItem: Identifiable {
     let id           = UUID()
-    let referenceTime: ReferenceTime
+    let prayer: Prayer
     let fullDate     : Date
     let time         : String
     let status       : PrayerStatus
@@ -25,12 +25,12 @@ struct MonthlyPrayerTile: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.referenceTime.icon)
+            Image(systemName: item.prayer.icon)
                 .font(.system(size: 13))
-                .foregroundStyle(item.referenceTime.color(for: item.fullDate))
+                .foregroundStyle(item.prayer.color(for: item.fullDate))
                 .frame(width: 20)
 
-            Text(item.referenceTime.label(for: item.fullDate))
+            Text(item.prayer.label(for: item.fullDate))
                 .font(.system(size: 13))
 
             Spacer()
@@ -51,13 +51,13 @@ struct MonthlyPrayerTile: View {
         case .prayed:
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13))
-                .foregroundStyle(item.referenceTime.color(for: item.fullDate))
+                .foregroundStyle(item.prayer.color(for: item.fullDate))
         case .passed:
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary.opacity(0.5))
         case .current:
-            Circle().fill(item.referenceTime.color(for: item.fullDate)).frame(width: 7, height: 7)
+            Circle().fill(item.prayer.color(for: item.fullDate)).frame(width: 7, height: 7)
         case .alert:
             Image(systemName: "bell.fill")
                 .font(.system(size: 11))
@@ -74,7 +74,7 @@ struct DayCell: View {
     let day       : DayEntry
     let isSelected: Bool
 
-    private let prayerColors: [Color] = ReferenceTime.allCases
+    private let prayerColors: [Color] = Prayer.allCases
         .filter { $0.isPrayer }
         .map(\.color)
 
@@ -266,10 +266,13 @@ struct MonthlyView: View {
 
     private var hijriDate: String {
         guard let date = selectedDate else { return "" }
+        let offset = settingsVM.settings.hijriAdjustment
+        let adjusted = Calendar.current.date(byAdding: .day, value: offset, to: date) ?? date
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .islamicUmmAlQura)
+        f.locale = Locale(identifier: "en")
         f.dateFormat = "d MMMM yyyy"
-        return f.string(from: date)
+        return f.string(from: adjusted)
     }
 
     private func buildDays(for month: Date) -> [DayEntry] {
@@ -329,7 +332,7 @@ struct MonthlyView: View {
             } else {
                 status = .upcoming
             }
-            return MonthlyPrayerItem(referenceTime: entry.referenceTime, fullDate: entry.date ?? Date(), time: entry.time, status: status)
+            return MonthlyPrayerItem(prayer: entry.prayer, fullDate: entry.date ?? Date(), time: entry.time, status: status)
         }
     }
 }

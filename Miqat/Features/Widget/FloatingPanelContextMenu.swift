@@ -2,7 +2,7 @@ import SwiftUI
 
 struct FloatingPanelContextMenu: View {
     @Environment(SettingsViewModel.self) private var settingsVM
-    var activePeriod: ReferenceTime = .isha
+    var activePeriod: Prayer = .isha
     var onOpenSettings: () -> Void = {}
     @State private var locationVM = LocationViewModel.shared
     @State private var showLocations = false

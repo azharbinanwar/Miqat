@@ -8,6 +8,7 @@ struct MainWindowView: View {
         _selectedItem = State(initialValue: initialTab)
     }
     @Environment(SettingsViewModel.self) private var settingsVM
+    @Environment(ThemeViewModel.self)    private var themeVM
     @Environment(PrayerTimeViewModel.self) private var prayerVM
 
     var body: some View {
@@ -38,18 +39,10 @@ struct MainWindowView: View {
             }
         }
         .frame(minWidth: 780, minHeight: 680)
-        .preferredColorScheme(appThemeColorScheme)
-        .tint(AccentColor.current)
+        .preferredColorScheme(themeVM.colorScheme)
+        .tint(themeVM.accentColor)
         .onReceive(NotificationCenter.default.publisher(for: .miqatSwitchTab)) { note in
             if let tab = note.object as? SidebarItem { selectedItem = tab }
-        }
-    }
-
-    private var appThemeColorScheme: ColorScheme? {
-        switch settingsVM.settings.appTheme {
-        case .light:  return .light
-        case .dark:   return .dark
-        case .system: return nil
         }
     }
 
@@ -73,6 +66,7 @@ struct MainWindowView: View {
 
 struct HeaderBar: View {
     @Environment(SettingsViewModel.self) private var settingsVM
+    @Environment(HijriCalendarViewModel.self) private var hijriVM
 
     private var fullDate: String {
         let f = DateFormatter()
@@ -80,17 +74,10 @@ struct HeaderBar: View {
         return f.string(from: Date())
     }
 
-    private var hijriDate: String {
-        let f = DateFormatter()
-        f.calendar = Calendar(identifier: .islamicUmmAlQura)
-        f.dateFormat = "d MMMM yyyy"
-        return f.string(from: Date())
-    }
-
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(hijriDate)
+                Text(hijriVM.today.formatted)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                 Text(fullDate)
@@ -118,6 +105,7 @@ struct HeaderBar: View {
                 .padding(.vertical, 6)
                 .background(selected ? AppColor.accentTeal : Color.clear,
                             in: RoundedRectangle(cornerRadius: 7))
+                .contentShape(Rectangle())
                 .animation(.spring(duration: 0.2), value: selected)
         }
         .buttonStyle(.plain)

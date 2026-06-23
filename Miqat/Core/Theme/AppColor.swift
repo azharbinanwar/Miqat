@@ -1,5 +1,6 @@
 import SwiftUI
 
+
 enum AppColor {
     // MARK: - Prayer colors
     static let fajr    = Color(hex: "#0D9488")
@@ -37,4 +38,14 @@ enum AppColor {
     static let skyCyan = Color(hex: "#0284C7")
     static let green   = Color(hex: "#14532D")
     static let brown   = Color(hex: "#78350F")
+
+    // MARK: - Accent picker
+    static let accentOptions: [(name: String, color: Color)] = [
+        ("Teal",   accentTeal),
+        ("Purple", accentPurple),
+        ("Gold",   accentGold),
+        ("Blue",   accentBlue),
+    ]
+
+
 }

@@ -8,9 +8,9 @@ struct PrayerCardView: View {
             VStack(alignment: .leading, spacing: 6) {
                 // Icon + name
                 HStack {
-                    Image(systemName: entry.referenceTime.icon)
+                    Image(systemName: entry.prayer.icon)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(entry.referenceTime.color)
+                        .foregroundStyle(entry.prayer.color)
                     Spacer()
                 }
 
@@ -67,9 +67,9 @@ struct PrayerCardView: View {
 
     private var statusColor: Color {
         switch entry.status {
-        case .prayed:   return entry.referenceTime.color
-        case .passed:   return entry.referenceTime.color
-        case .current:  return entry.referenceTime.color
+        case .prayed:   return entry.prayer.color
+        case .passed:   return entry.prayer.color
+        case .current:  return entry.prayer.color
         case .upcoming: return .secondary
         case .alert:    return AppColor.alert
         }
@@ -77,13 +77,13 @@ struct PrayerCardView: View {
 
     private var timeColor: Color {
         if entry.isAlert { return AppColor.alert }
-        if entry.isCurrent { return entry.referenceTime.color }
+        if entry.isCurrent { return entry.prayer.color }
         return .primary
     }
 
     private var borderColor: Color {
         if entry.isAlert   { return AppColor.alert.opacity(0.6) }
-        if entry.isCurrent { return entry.referenceTime.color.opacity(0.6) }
+        if entry.isCurrent { return entry.prayer.color.opacity(0.6) }
         return Color.primary.opacity(0.08)
     }
 
@@ -91,7 +91,7 @@ struct PrayerCardView: View {
     private var cardBackground: some View {
         if entry.isCurrent {
             RoundedRectangle(cornerRadius: 14)
-                .fill(entry.referenceTime.color.opacity(0.08))
+                .fill(entry.prayer.color.opacity(0.08))
         } else if entry.isAlert {
             RoundedRectangle(cornerRadius: 14)
                 .fill(AppColor.alert.opacity(0.06))

@@ -1,26 +1,35 @@
 import SwiftUI
 
 struct BottomStatsBar: View {
+    @Environment(PrayerTimeViewModel.self) private var prayerVM
+
+    private var sunriseTime: String {
+        prayerVM.entries.first(where: { $0.prayer == .sunrise })?.time ?? "--:--"
+    }
+    private var sunsetTime: String {
+        prayerVM.entries.first(where: { $0.prayer == .maghrib })?.time ?? "--:--"
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            statItem(icon: "flame.fill", iconColor: ReferenceTime.sunrise.color,
-                     label: "Streak", value: "\(MockPrayerData.streak) days")
+            statItem(icon: "flame.fill", iconColor: Prayer.sunrise.color,
+                     label: "Streak", value: "--")
 
             Divider().frame(height: 28)
 
-            statItem(icon: "checkmark.circle.fill", iconColor: ReferenceTime.fajr.color,
-                     label: "Today", value: "\(MockPrayerData.todayPrayed)/\(MockPrayerData.todayTotal) prayed",
+            statItem(icon: "checkmark.circle.fill", iconColor: Prayer.fajr.color,
+                     label: "Today", value: "0/0 prayed",
                      valueColor: AppColor.alert)
 
             Divider().frame(height: 28)
 
-            statItem(icon: "sunrise.fill", iconColor: ReferenceTime.sunrise.color,
-                     label: "Sunrise", value: MockPrayerData.sunrise)
+            statItem(icon: "sunrise.fill", iconColor: Prayer.sunrise.color,
+                     label: "Sunrise", value: sunriseTime)
 
             Divider().frame(height: 28)
 
-            statItem(icon: "sunset.fill", iconColor: ReferenceTime.maghrib.color,
-                     label: "Sunset", value: MockPrayerData.sunset)
+            statItem(icon: "sunset.fill", iconColor: Prayer.maghrib.color,
+                     label: "Sunset", value: sunsetTime)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)

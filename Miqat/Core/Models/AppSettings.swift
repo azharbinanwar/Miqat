@@ -22,10 +22,6 @@ struct AppSettings: Codable, Equatable {
     var orangeThreshold: Int = 30
     var redThreshold: Int = 20
 
-    // MARK: - Appearance
-    var appTheme: AppTheme = .system
-    var accentColorIndex: Int = 0
-
     // MARK: - Startup
     var launchAtLogin: Bool = true
     var floatingPanelMode: FloatingPanelMode = .always
