@@ -68,31 +68,93 @@ struct WidgetPrayerRow: View {
     }
 }
 
-// MARK: - Widget View
+// MARK: - Floating Panel View
 
-struct WidgetView: View {
+struct FloatingPanelView: View {
+    let prayerVM: PrayerTimeViewModel
+    var onOpenSettings: () -> Void = {}
+    @Environment(SettingsViewModel.self) private var settingsVM
     @State private var prayed = false
-    @State private var currentHour = Calendar.current.component(.hour, from: Date())
+    @State private var showContextMenu = false
+    @State private var locationVM = LocationViewModel.shared
+    private let currentHour = Calendar.current.component(.hour, from: Date())
+
+    private var widgetSize: FloatingPanelSize { settingsVM.settings.floatingPanelSize }
 
     var body: some View {
         ZStack {
-            // Time-of-day gradient background
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: widgetSize.cornerRadius)
                 .fill(timeGradient)
                 .shadow(color: .black.opacity(0.45), radius: 32, x: 0, y: 16)
 
-            VStack(spacing: 0) {
-                header
-                Divider().opacity(0.15).padding(.horizontal, 16)
-                heroSection
-                Divider().opacity(0.15).padding(.horizontal, 16)
-                prayerList
-                Divider().opacity(0.15).padding(.horizontal, 16)
-                footer
+            switch widgetSize {
+            case .small:  smallLayout
+            case .medium: mediumLayout
+            case .large:  largeLayout
             }
         }
-        .frame(width: 320, height: 560)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .frame(width: widgetSize.panelSize.width, height: widgetSize.panelSize.height)
+        .clipShape(RoundedRectangle(cornerRadius: widgetSize.cornerRadius))
+        .animation(.spring(duration: 0.3), value: widgetSize)
+        .onLongPressGesture(minimumDuration: 0.5) { showContextMenu = true }
+        .popover(isPresented: $showContextMenu, arrowEdge: .trailing) {
+            FloatingPanelContextMenu(activePeriod: activePeriod, onOpenSettings: {
+                showContextMenu = false
+                onOpenSettings()
+            })
+            .environment(settingsVM)
+        }
+    }
+
+    // MARK: Small layout (260 × 100)
+    private var smallLayout: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("NEXT · \((prayerVM.nextPrayerEntry?.label ?? "--").uppercased())")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .tracking(1.5)
+                Text(prayerVM.countdownText)
+                    .font(.system(size: 28, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(heroCountdownColor)
+                Text(prayerVM.nextPrayerEntry?.time ?? "--:--")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            Spacer()
+            Button {
+                withAnimation(.spring(duration: 0.25)) { prayed.toggle() }
+            } label: {
+                Image(systemName: prayed ? "checkmark.circle.fill" : "checkmark.circle")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(prayed ? timeAccent : .white)
+                    .frame(width: 32, height: 32)
+                    .background(prayed ? .white : .white.opacity(0.15), in: Circle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
+    // MARK: Medium layout (320 × 390) — hero + list
+    private var mediumLayout: some View {
+        VStack(spacing: 0) {
+            heroSection
+            Divider().opacity(0.15).padding(.horizontal, 16)
+            prayerList
+        }
+    }
+
+    // MARK: Large layout (320 × 510) — header + hero + list
+    private var largeLayout: some View {
+        VStack(spacing: 0) {
+            header
+            Divider().opacity(0.15).padding(.horizontal, 16)
+            heroSection
+            Divider().opacity(0.15).padding(.horizontal, 16)
+            prayerList
+        }
     }
 
     // MARK: Header
@@ -102,7 +164,7 @@ struct WidgetView: View {
                 Text(MockPrayerData.hijriDate)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.5))
-                Text(MockPrayerData.location)
+                Text(locationVM.activeCityName)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.8))
             }
@@ -129,16 +191,16 @@ struct WidgetView: View {
     // MARK: Hero countdown section
     private var heroSection: some View {
         VStack(spacing: 8) {
-            Text("NEXT · \(MockPrayerData.nextPrayer.uppercased())")
+            Text("NEXT · \((prayerVM.nextPrayerEntry?.label ?? "--").uppercased())")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(.white.opacity(0.5))
                 .tracking(2)
 
-            Text(MockPrayerData.countdown)
+            Text(prayerVM.countdownText)
                 .font(.system(size: 52, weight: .heavy, design: .monospaced))
-                .foregroundStyle(.white)
+                .foregroundStyle(heroCountdownColor)
 
-            Text(MockPrayerData.nextPrayerTime)
+            Text(prayerVM.nextPrayerEntry?.time ?? "--:--")
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.55))
 
@@ -162,66 +224,27 @@ struct WidgetView: View {
         .padding(.vertical, 18)
     }
 
-    // MARK: Prayer list — generic WidgetPrayerRow per entry
+    // MARK: Prayer list — identical to popup
     private var prayerList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(MockPrayerData.entries.enumerated()), id: \.element.id) { index, entry in
-                WidgetPrayerRow(entry: entry)
-                if index < MockPrayerData.entries.count - 1 {
+            ForEach(Array(prayerVM.entries.enumerated()), id: \.element.id) { index, entry in
+                PopoverPrayerRow(entry: entry, countdown: prayerVM.countdownText)
+                if index < prayerVM.entries.count - 1 {
                     Divider()
-                        .padding(.leading, 44)
+                        .padding(.leading, 46)
                         .opacity(0.08)
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 
-    // MARK: Footer
-    private var footer: some View {
-        HStack {
-            // Madhab pill
-            HStack(spacing: 4) {
-                Text("Hanafi")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.6))
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.white.opacity(0.35))
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.white.opacity(0.1), in: Capsule())
-
-            Spacer()
-
-            // Today count
-            HStack(spacing: 4) {
-                ForEach(0..<5) { i in
-                    Circle()
-                        .fill(i < MockPrayerData.todayPrayed ? Color.white : Color.white.opacity(0.2))
-                        .frame(width: 6, height: 6)
-                }
-            }
-
-            Spacer()
-
-            // Settings icon
-            Button { } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .padding(7)
-                    .background(.white.opacity(0.08), in: Circle())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+    // MARK: Gradient — mirrors PopoverView exactly
+    private var activePeriod: ReferenceTime {
+        prayerVM.currentPrayer ?? prayerVM.nextPrayerEntry?.referenceTime ?? hourFallback
     }
 
-    // MARK: Time-of-day gradient — driven by prayer period, not raw hour
-    private var approximatePeriod: ReferenceTime {
+    private var hourFallback: ReferenceTime {
         switch currentHour {
         case 3..<6:   return .fajr
         case 6..<8:   return .sunrise
@@ -233,10 +256,24 @@ struct WidgetView: View {
     }
 
     private var timeGradient: LinearGradient {
-        LinearGradient(colors: approximatePeriod.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: activePeriod.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
-    private var timeAccent: Color {
-        approximatePeriod.color
+    private var timeAccent: Color { activePeriod.color }
+
+    private var heroCountdownColor: Color {
+        let mins = minutesFromCountdown(prayerVM.countdownText)
+        if mins <= 20 { return AppColor.softRed }
+        if mins <= 30 { return AppColor.softAmber }
+        return .white
+    }
+
+    private func minutesFromCountdown(_ s: String) -> Int {
+        let parts = s.split(separator: ":").compactMap { Int($0) }
+        switch parts.count {
+        case 3: return parts[0] * 60 + parts[1]
+        case 2: return parts[0]
+        default: return 999
+        }
     }
 }

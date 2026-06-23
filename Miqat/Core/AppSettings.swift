@@ -28,8 +28,35 @@ struct AppSettings: Codable, Equatable {
 
     // MARK: - Startup
     var launchAtLogin: Bool = true
-    var showWidgetOnLaunch: Bool = true
-    var openWindowOnLaunch: Bool = false
+    var floatingPanelMode: FloatingPanelMode = .always
+    var floatingPanelSize: FloatingPanelSize = .medium
+    var openWindowOnLaunch: Bool = true
+}
+
+enum FloatingPanelMode: String, CaseIterable, Codable, Hashable {
+    case off    = "Off"
+    case normal = "Normal"
+    case always = "Always"
+}
+
+enum FloatingPanelSize: String, CaseIterable, Codable, Hashable {
+    case small  = "Small"
+    case medium = "Medium"
+    case large  = "Large"
+
+    var shortLabel: String {
+        switch self { case .small: return "S"; case .medium: return "M"; case .large: return "L" }
+    }
+
+    var panelSize: CGSize {
+        switch self {
+        case .small:  return CGSize(width: 320, height: 100)
+        case .medium: return CGSize(width: 320, height: 480)
+        case .large:  return CGSize(width: 320, height: 560)
+        }
+    }
+
+    var cornerRadius: CGFloat { self == .small ? 14 : 16 }
 }
 
 // MARK: - Derived helpers

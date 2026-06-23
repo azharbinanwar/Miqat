@@ -84,6 +84,7 @@ struct NotifPrayerRow: View {
                     value: $config.zMinutes,
                     range: 5...60, step: 5, unit: "min", showSign: false
                 )
+                .padding(.leading, 24)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
@@ -111,7 +112,6 @@ struct NotifPrayerRow: View {
         var parts: [String] = ["\(config.xMinutes)m early"]
         if config.atPrayerTime { parts.append("at prayer") }
         if config.zEnabled { parts.append("jamaat +\(config.zMinutes)m") }
-        parts.append(config.soundDisplayName)
         return parts.joined(separator: " · ")
     }
 }
@@ -165,6 +165,7 @@ struct FridayJumuahRow: View {
                     value: $config.missedMinutes,
                     range: 5...120, step: 5, unit: "min", showSign: false
                 )
+                .padding(.leading, 24)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 

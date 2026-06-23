@@ -1,5 +1,4 @@
 import AppKit
-import AVFoundation
 import UserNotifications
 import SwiftUI
 
@@ -22,15 +21,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // MARK: - Launch
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.regular)
+        NSApp.setActivationPolicy(.accessory)
         UNUserNotificationCenter.current().delegate = self
         setupDI()
         setupPrayerTimes()
         setupStatusItem()
         setupPopover()
 
+        NotificationCenter.default.addObserver(forName: .settingsDidChange, object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            let mode = settingsVM.settings.floatingPanelMode
+            if mode == .off {
+                widgetController?.close()
+                widgetController = nil
+            } else if let panel = widgetController?.window as? NSPanel {
+                // Apply level + behavior so mode changes (Normal ↔ Always) take effect immediately
+                switch mode {
+                case .off: break
+                case .normal:
+                    panel.level              = .normal
+                    panel.collectionBehavior = [.managed]
+                case .always:
+                    panel.level              = .floating
+                    panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+                }
+                let newSize = settingsVM.settings.floatingPanelSize.panelSize
+                var frame = panel.frame
+                frame.origin.y = frame.maxY - newSize.height
+                frame.size = newSize
+                panel.setFrame(frame, display: true, animate: true)
+            } else {
+                showWidget()
+            }
+        }
+
         if UserDefaults.standard.bool(forKey: Keys.Defaults.hasCompletedOnboarding) {
-            showMainWindow()
+            if settingsVM.settings.openWindowOnLaunch { showMainWindow() }
+            showWidget()
         } else {
             showOnboarding()
         }
@@ -258,6 +285,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         mainWindowController = NSWindowController(window: window)
+        NSApp.setActivationPolicy(.regular)
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { [weak self] _ in
+            self?.mainWindowController = nil
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     // MARK: - Dependency Injection
@@ -279,25 +311,55 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // MARK: - Widget (floating NSPanel)
 
     private func showWidget() {
+        widgetController?.close()
+        widgetController = nil
+
+        guard settingsVM.settings.floatingPanelMode != .off else { return }
+
+        let size = settingsVM.settings.floatingPanelSize.panelSize
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: size.width, height: size.height),
             styleMask: [.borderless, .nonactivatingPanel, .resizable],
             backing: .buffered,
             defer: false
         )
-        panel.level                   = .floating
+        switch settingsVM.settings.floatingPanelMode {
+        case .off: break
+        case .normal:
+            panel.level              = .normal
+            panel.collectionBehavior = [.managed]
+        case .always:
+            panel.level              = .floating
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        }
         panel.isOpaque                = false
         panel.backgroundColor         = .clear
         panel.hasShadow               = true
         panel.isMovableByWindowBackground = true
-        panel.collectionBehavior      = [.canJoinAllSpaces, .stationary]
-        panel.contentView             = NSHostingView(rootView: WidgetView())
+        panel.contentView             = NSHostingView(rootView: FloatingPanelView(prayerVM: menuBarVM, onOpenSettings: { [weak self] in
+            self?.showMainWindow(tab: .settings)
+        }).environment(settingsVM))
 
-        if let screen = NSScreen.main {
-            let x = screen.visibleFrame.maxX - 340
-            let y = screen.visibleFrame.maxY - 580
-            panel.setFrameOrigin(NSPoint(x: x, y: y))
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: Keys.Defaults.floatingPanelX) != nil {
+            let origin = NSPoint(
+                x: defaults.double(forKey: Keys.Defaults.floatingPanelX),
+                y: defaults.double(forKey: Keys.Defaults.floatingPanelY)
+            )
+            panel.setFrameOrigin(origin)
+        } else if let screen = NSScreen.main {
+            panel.setFrameOrigin(NSPoint(
+                x: screen.visibleFrame.maxX - 340,
+                y: screen.visibleFrame.maxY - 580
+            ))
         }
+
+        NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: panel, queue: .main) { [weak panel] _ in
+            guard let origin = panel?.frame.origin else { return }
+            UserDefaults.standard.set(origin.x, forKey: Keys.Defaults.floatingPanelX)
+            UserDefaults.standard.set(origin.y, forKey: Keys.Defaults.floatingPanelY)
+        }
+
         panel.orderFrontRegardless()
         widgetController = NSWindowController(window: panel)
     }
@@ -318,15 +380,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
                 DispatchQueue.main.async {
                     LocationViewModel.shared.cancelFetch()
                     UserDefaults.standard.set(true, forKey: Keys.Defaults.hasCompletedOnboarding)
+                    if let raw = UserDefaults.standard.string(forKey: Keys.Defaults.selectedMadhab),
+                       let madhab = Madhab(rawValue: raw) {
+                        self.settingsVM.update { $0.madhab = madhab }
+                    }
                     self.onboardingWindow?.animationBehavior = .none
                     self.onboardingWindow?.close()
                     // Nil AFTER main window is shown — keeps our strong reference alive
                     // through the current run loop so the window's autorelease pool
                     // entry drains before ARC releases it (prevents double-release crash)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.showMainWindow()
+                        if self.settingsVM.settings.openWindowOnLaunch {
+                            self.showMainWindow()
+                        }
                         self.onboardingWindow = nil
-                        // self.showWidget() — Phase 5
+                        self.showWidget()
                     }
                 }
             }
@@ -336,54 +404,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         onboardingWindow = window
     }
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { showMainWindow() }
+        return true
+    }
+
     // Show notifications even when app is in foreground.
-    // If the notification carries a custom sound (stored in App Support, not bundle),
-    // we suppress UNNotificationSound and play it ourselves via AVAudioPlayer.
+    // CUSTOM SOUND DISABLED: willPresent only fires when app is foreground (menu bar background = never fires).
+    // AVAudioPlayer workaround therefore unreliable. Revisit when Apple fixes UNNotificationSound on macOS (FB11642483).
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        let userInfo = notification.request.content.userInfo
-        let soundName = userInfo["soundName"] as? String ?? ""
-        let customFile = userInfo["customSoundFilename"] as? String
-
-        if soundName == "none" || soundName.isEmpty {
-            completionHandler([.banner])
-        } else if let filename = customFile {
-            // Custom sound — play via AVAudioPlayer, suppress system sound to avoid double
-            playSound(url: SoundConversionService.shared.url(for: filename), label: filename)
-            completionHandler([.banner])
-        } else if let sound = AppSound(rawValue: soundName), sound != .systemDefault {
-            // Bundled sound — play via AVAudioPlayer, suppress system sound to avoid double
-            playBundledSound(sound)
-            completionHandler([.banner])
-        } else {
-            // System default — let macOS handle it
-            completionHandler([.banner, .sound])
-        }
-    }
-
-    private var notifSoundPlayer: AVAudioPlayer?
-
-    private func playBundledSound(_ sound: AppSound) {
-        guard let filename = sound.filename, let folder = sound.folder else { return }
-        let url = Bundle.main.url(forResource: filename, withExtension: "aiff", subdirectory: "Sounds/\(folder)")
-            ?? Bundle.main.url(forResource: filename, withExtension: "aiff")
-        guard let url else {
-            print("⚠️ Bundled sound not found: \(sound.rawValue)")
-            return
-        }
-        playSound(url: url, label: sound.rawValue)
-    }
-
-    private func playSound(url: URL, label: String) {
-        guard FileManager.default.fileExists(atPath: url.path),
-              let player = try? AVAudioPlayer(contentsOf: url) else {
-            print("⚠️ Sound file missing: \(label)")
-            return
-        }
-        notifSoundPlayer = player
-        player.play()
+        completionHandler([.banner, .sound])
     }
 }

@@ -37,6 +37,7 @@ struct OnboardingView: View {
         case 1: MadhabPage(vm: vm)
         case 2: NotificationsPage(vm: vm)
         case 3: LocationPage(vm: vm)
+        case 4: LaunchAtLoginPage(vm: vm)
         default: EmptyView()
         }
     }
@@ -44,7 +45,7 @@ struct OnboardingView: View {
     private var bottomBar: some View {
         VStack(spacing: 12) {
             HStack(spacing: 7) {
-                ForEach(0..<4) { i in
+                ForEach(0..<5) { i in
                     Capsule()
                         .fill(.white.opacity(i == vm.page ? 1 : 0.3))
                         .frame(width: i == vm.page ? 22 : 7, height: 7)
@@ -52,7 +53,6 @@ struct OnboardingView: View {
                 }
             }
 
-            // "Not Now" skip link — only on notification page
             if vm.isNotifPage {
                 Button {
                     Task { await vm.skipNotifications() }
@@ -63,10 +63,23 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.plain)
             }
+            if vm.isLoginPage {
+                Button { onComplete() } label: {
+                    Text("Not Now")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+            }
 
             Button {
                 Task {
-                    if vm.isLastPage { onComplete() } else { await vm.advance() }
+                    if vm.isLoginPage {
+                        await vm.requestLoginItem()
+                        onComplete()
+                    } else {
+                        await vm.advance()
+                    }
                 }
             } label: {
                 HStack(spacing: 8) {

@@ -91,6 +91,7 @@ where T.RawValue == String, T.AllCases: RandomAccessCollection {
     let icon: String
     let iconColor: Color
     let title: String
+    var subtitle: String = ""
     @Binding var selection: T
 
     var body: some View {
@@ -101,8 +102,15 @@ where T.RawValue == String, T.AllCases: RandomAccessCollection {
                 .frame(width: 28, height: 28)
                 .background(iconColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
-            Text(title)
-                .font(.system(size: 13, weight: .medium))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             Spacer()
 
@@ -433,22 +441,27 @@ struct SettingsView: View {
             Divider().padding(.leading, 58).opacity(0.3)
 
             SettingsToggleRow(
-                icon: "macwindow",
-                iconColor: AppColor.accentTeal,
-                title: "Show widget on launch",
-                subtitle: "Floating prayer times panel on desktop",
-                isOn: vm.binding(for: \.showWidgetOnLaunch)
-            )
-
-            Divider().padding(.leading, 58).opacity(0.3)
-
-            SettingsToggleRow(
-                icon: "rectangle.stack.fill",
+                icon: "menubar.rectangle",
                 iconColor: AppColor.accentTeal,
                 title: "Open main window on launch",
                 subtitle: "Show full app window at startup",
                 isOn: vm.binding(for: \.openWindowOnLaunch)
             )
+
+            Divider().padding(.leading, 58).opacity(0.3)
+
+            SettingsSegmentRow(
+                icon: "macwindow",
+                iconColor: AppColor.accentTeal,
+                title: "Floating panel",
+                subtitle: "Off — hidden, Normal — this Space, Always — all Spaces above all apps",
+                selection: vm.binding(for: \.floatingPanelMode)
+            )
+
+            if vm.settings.floatingPanelMode != .off {
+                Divider().padding(.leading, 58).opacity(0.3)
+                FloatingPanelSizePicker(selection: vm.binding(for: \.floatingPanelSize))
+            }
         }
     }
 
@@ -547,5 +560,108 @@ struct SettingsView: View {
         if p.count == 3 { return "\(p[0]):\(p[1])" }
         if p.count == 2 { return String(p[0]) }
         return s
+    }
+}
+
+// MARK: - Floating Panel Size Picker
+
+private struct FloatingPanelSizePicker: View {
+    @Binding var selection: FloatingPanelSize
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(FloatingPanelSize.allCases, id: \.self) { size in
+                Button { selection = size } label: {
+                    VStack(spacing: 8) {
+                        miniCard(for: size)
+                        Text(size.rawValue)
+                            .font(.system(size: 11, weight: selection == size ? .semibold : .regular))
+                            .foregroundStyle(selection == size ? AppColor.accentTeal : .secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 130)
+                    .padding(.vertical, 10)
+                    .background(
+                        selection == size ? AppColor.accentTeal.opacity(0.07) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 8)
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 4)
+    }
+
+    @ViewBuilder
+    private func miniCard(for size: FloatingPanelSize) -> some View {
+        let selected = selection == size
+        let ink: Color = selected ? AppColor.accentTeal : .secondary
+        let w: CGFloat = 58
+        let h: CGFloat = size == .small ? 22 : size == .medium ? 74 : 90
+
+        ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: 5)
+                .fill(selected ? AppColor.accentTeal.opacity(0.08) : Color(NSColor.controlBackgroundColor))
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(selected ? AppColor.accentTeal : Color.secondary.opacity(0.28), lineWidth: selected ? 1.5 : 1)
+            switch size {
+            case .small:  smallWire(ink: ink)
+            case .medium: mediumWire(ink: ink)
+            case .large:  largeWire(ink: ink)
+            }
+        }
+        .frame(width: w, height: h)
+    }
+
+    private func smallWire(ink: Color) -> some View {
+        HStack(spacing: 4) {
+            Capsule().fill(ink.opacity(0.7)).frame(width: 22, height: 4)
+            Spacer()
+            Circle().fill(ink.opacity(0.4)).frame(width: 6)
+        }
+        .padding(.horizontal, 7)
+        .frame(maxHeight: .infinity)
+    }
+
+    private func mediumWire(ink: Color) -> some View {
+        VStack(spacing: 3) {
+            Capsule().fill(ink.opacity(0.4)).frame(width: 20, height: 3)
+            Capsule().fill(ink.opacity(0.8)).frame(width: 32, height: 5)
+            Capsule().fill(ink.opacity(0.3)).frame(width: 24, height: 3)
+            Divider().opacity(0.2).padding(.vertical, 1)
+            ForEach(0..<5) { i in prayerWire(ink: ink, current: i == 2) }
+        }
+        .padding(.top, 7).padding(.bottom, 4)
+    }
+
+    private func largeWire(ink: Color) -> some View {
+        VStack(spacing: 3) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Capsule().fill(ink.opacity(0.3)).frame(width: 18, height: 2)
+                    Capsule().fill(ink.opacity(0.5)).frame(width: 26, height: 3)
+                }
+                Spacer()
+                Circle().fill(ink.opacity(0.25)).frame(width: 8)
+            }
+            .padding(.horizontal, 5)
+            Divider().opacity(0.2)
+            Capsule().fill(ink.opacity(0.4)).frame(width: 20, height: 3)
+            Capsule().fill(ink.opacity(0.8)).frame(width: 32, height: 5)
+            Capsule().fill(ink.opacity(0.3)).frame(width: 24, height: 3)
+            Divider().opacity(0.2).padding(.vertical, 1)
+            ForEach(0..<5) { i in prayerWire(ink: ink, current: i == 2) }
+        }
+        .padding(.top, 6).padding(.bottom, 4)
+    }
+
+    private func prayerWire(ink: Color, current: Bool) -> some View {
+        HStack(spacing: 3) {
+            Circle().fill(ink.opacity(current ? 0.8 : 0.4)).frame(width: 4)
+            Capsule().fill(ink.opacity(current ? 0.7 : 0.35)).frame(height: 3)
+            Capsule().fill(ink.opacity(0.25)).frame(width: 12, height: 3)
+        }
+        .padding(.horizontal, 5)
     }
 }
