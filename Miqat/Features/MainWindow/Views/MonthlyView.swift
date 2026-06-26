@@ -15,7 +15,7 @@ struct MonthlyPrayerItem: Identifiable {
     let prayer: Prayer
     let fullDate     : Date
     let time         : String
-    let status       : PrayerStatus
+    let status       : PrayerTrackerStatus?  // nil = future / no record
 }
 
 // MARK: - Prayer Tile
@@ -35,11 +35,13 @@ struct MonthlyPrayerTile: View {
 
             Spacer()
 
-            Text(item.time)
-                .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.secondary)
-
-            statusIcon
+            HStack(spacing: 4) {
+                if item.prayer.isPrayer { statusIcon }
+                Text(item.time)
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 65, alignment: .trailing)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 11)
@@ -47,23 +49,10 @@ struct MonthlyPrayerTile: View {
 
     @ViewBuilder
     private var statusIcon: some View {
-        switch item.status {
-        case .prayed:
-            Image(systemName: "checkmark.circle.fill")
+        if let status = item.status {
+            Image(systemName: status.icon)
                 .font(.system(size: 13))
-                .foregroundStyle(item.prayer.color(for: item.fullDate))
-        case .passed:
-            Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary.opacity(0.5))
-        case .current:
-            Circle().fill(item.prayer.color(for: item.fullDate)).frame(width: 7, height: 7)
-        case .alert:
-            Image(systemName: "bell.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(AppColor.alert)
-        case .upcoming:
-            Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 1).frame(width: 7, height: 7)
+                .foregroundStyle(status.color.opacity(status == .missed ? 0.7 : 1))
         }
     }
 }
@@ -73,10 +62,9 @@ struct MonthlyPrayerTile: View {
 struct DayCell: View {
     let day       : DayEntry
     let isSelected: Bool
+    let records   : [PrayerRecord]
 
-    private let prayerColors: [Color] = Prayer.allCases
-        .filter { $0.isPrayer }
-        .map(\.color)
+    private let prayers = Prayer.allCases.filter(\.isPrayer)
 
     var body: some View {
         VStack(spacing: 5) {
@@ -97,9 +85,10 @@ struct DayCell: View {
                 }
 
             HStack(spacing: 2) {
-                ForEach(Array(prayerColors.enumerated()), id: \.offset) { _, color in
+                ForEach(prayers, id: \.self) { prayer in
+                    let status = records.first(where: { $0.prayer == prayer })?.status
                     Circle()
-                        .fill(day.isCurrentMonth ? color.opacity(day.isToday ? 0.9 : 0.45) : Color.clear)
+                        .fill(day.isCurrentMonth ? dotColor(status, prayer: prayer) : Color.clear)
                         .frame(width: 4, height: 4)
                 }
             }
@@ -108,17 +97,24 @@ struct DayCell: View {
         .contentShape(Rectangle())
         .opacity(day.isCurrentMonth ? 1 : 0.3)
     }
+
+    private func dotColor(_ status: PrayerTrackerStatus?, prayer: Prayer) -> Color {
+        guard let status else { return Color.secondary.opacity(0.15) }
+        return status.color.opacity(status == .missed ? 0.6 : 0.85)
+    }
 }
 
 // MARK: - Monthly View
 
 struct MonthlyView: View {
-    @Environment(PrayerTimeViewModel.self) private var prayerVM
-    @Environment(SettingsViewModel.self)  private var settingsVM
+    @Environment(PrayerTimeViewModel.self)    private var prayerVM
+    @Environment(SettingsViewModel.self)      private var settingsVM
+    @Environment(PrayerTrackerViewModel.self) private var trackerVM
 
     @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDate  : Date? = Date()
     @State private var selectedItems : [MonthlyPrayerItem] = []
+    @State private var monthRecords  : [Date: [PrayerRecord]] = [:]
 
     private let columns  = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -130,7 +126,11 @@ struct MonthlyView: View {
             detailPanel.frame(width: 260)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { loadPrayerItems(for: selectedDate ?? Date()) }
+        .onAppear {
+            loadMonthRecords(for: displayedMonth)
+            loadPrayerItems(for: selectedDate ?? Date())
+        }
+        .onChange(of: displayedMonth) { loadMonthRecords(for: displayedMonth) }
     }
 
     // MARK: Calendar panel
@@ -144,9 +144,11 @@ struct MonthlyView: View {
 
             LazyVGrid(columns: columns, spacing: 4) {
                 ForEach(buildDays(for: displayedMonth)) { day in
-                    DayCell(day: day, isSelected: selectedDate.map {
-                        Calendar.current.isDate($0, inSameDayAs: day.fullDate)
-                    } ?? false)
+                    DayCell(
+                        day: day,
+                        isSelected: selectedDate.map { Calendar.current.isDate($0, inSameDayAs: day.fullDate) } ?? false,
+                        records: monthRecords[Calendar.current.startOfDay(for: day.fullDate)] ?? []
+                    )
                     .onTapGesture {
                         guard day.isCurrentMonth else { return }
                         withAnimation(.easeInOut(duration: 0.15)) { selectedDate = day.fullDate }
@@ -312,27 +314,29 @@ struct MonthlyView: View {
         return days
     }
 
+    private func loadMonthRecords(for month: Date) {
+        let cal   = Calendar.current
+        let days  = buildDays(for: month).filter(\.isCurrentMonth)
+        var map   = [Date: [PrayerRecord]]()
+        for day in days {
+            let key = cal.startOfDay(for: day.fullDate)
+            map[key] = trackerVM.records(for: day.fullDate)
+        }
+        monthRecords = map
+    }
+
     private func loadPrayerItems(for date: Date) {
         let repo     = ServiceLocator.shared.resolve(LocationRepository.self)
         let location = repo.getActiveLocation() ?? Location.presets[0]
         let settings = settingsVM.settings.prayerCalculationSettings
-        let cal      = Calendar.current
-        let isToday  = cal.isDateInToday(date)
-        let isPast   = date < cal.startOfDay(for: Date()) && !isToday
+        let service  = ServiceLocator.shared.resolve(PrayerEngineServiceProtocol.self)
+        let dayRecords = trackerVM.records(for: date)
 
-        let entries = PrayerEngineService().calculateTimes(for: date, location: location, settings: settings)
+        let entries = service.calculateTimes(for: date, referenceDate: nil, location: location, settings: settings)
 
-        selectedItems = entries.enumerated().map { idx, entry in
-            let status: PrayerStatus
-            if isToday {
-                status = entry.status
-            } else if isPast {
-                // Deterministic pseudo-random: looks realistic without CoreData
-                status = (idx + cal.component(.day, from: date)) % 5 == 0 ? .passed : .prayed
-            } else {
-                status = .upcoming
-            }
-            return MonthlyPrayerItem(prayer: entry.prayer, fullDate: entry.date ?? Date(), time: entry.time, status: status)
+        selectedItems = entries.map { entry in
+            let status = dayRecords.first(where: { $0.prayer == entry.prayer })?.status
+            return MonthlyPrayerItem(prayer: entry.prayer, fullDate: entry.date ?? date, time: entry.time, status: status)
         }
     }
 }

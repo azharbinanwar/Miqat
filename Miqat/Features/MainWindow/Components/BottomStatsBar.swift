@@ -1,25 +1,26 @@
 import SwiftUI
 
 struct BottomStatsBar: View {
-    @Environment(PrayerTimeViewModel.self) private var prayerVM
+    @Environment(PrayerTimeViewModel.self)    private var prayerVM
+    @Environment(PrayerTrackerViewModel.self) private var trackerVM
 
     private var sunriseTime: String {
-        prayerVM.entries.first(where: { $0.prayer == .sunrise })?.time ?? "--:--"
+        prayerVM.displayEntries.first(where: { $0.prayer == .sunrise })?.time ?? "--:--"
     }
     private var sunsetTime: String {
-        prayerVM.entries.first(where: { $0.prayer == .maghrib })?.time ?? "--:--"
+        prayerVM.displayEntries.first(where: { $0.prayer == .maghrib })?.time ?? "--:--"
     }
 
     var body: some View {
         HStack(spacing: 0) {
             statItem(icon: "flame.fill", iconColor: Prayer.sunrise.color,
-                     label: "Streak", value: "--")
+                     label: "Streak", value: "\(trackerVM.currentStreak)d")
 
             Divider().frame(height: 28)
 
             statItem(icon: "checkmark.circle.fill", iconColor: Prayer.fajr.color,
-                     label: "Today", value: "0/0 prayed",
-                     valueColor: AppColor.alert)
+                     label: "Today", value: "\(trackerVM.todayCount)/5 prayed",
+                     valueColor: trackerVM.todayCount == 5 ? AppColor.softGreen : AppColor.alert)
 
             Divider().frame(height: 28)
 

@@ -5,12 +5,12 @@ import SwiftUI
 struct PopoverPrayerRow: View {
     let entry: PrayerEntry
     let countdown: String
+    var trackerStatus: PrayerTrackerStatus?
 
-    private var timeStatus: PrayerTimeStatus { entry.timeStatus }
-    private var isCurrent: Bool { timeStatus == .current }
-    private var isSoon:    Bool { timeStatus == .soon }
-    private var isPrayed:  Bool { entry.status == .prayed }
-    private var isMissed:  Bool { entry.status == .passed }
+    private var isCurrent: Bool { entry.status == .current }
+    private var isSoon:    Bool { entry.status == .soon }
+    private var isPrayed:  Bool { trackerStatus?.keepsStreak ?? false }
+    private var isMissed:  Bool { trackerStatus == .missed }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -20,95 +20,67 @@ struct PopoverPrayerRow: View {
                 .frame(width: 3)
                 .padding(.vertical, 8)
 
-            HStack(spacing: 10) {
-                // Prayer identity icon
+            HStack(spacing: 0) {
+                // Col 1: prayer icon — fixed
                 Image(systemName: entry.prayer.icon)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(rowIconColor)
-                    .frame(width: 18)
+                    .frame(width: 24, alignment: .center)
 
-                // Prayer name
-                Text(entry.label)
-                    .font(.system(size: 13, weight: isCurrent ? .semibold : .regular))
-                    .foregroundStyle(rowNameColor)
-
-                Spacer()
-
-                // Time status badge (NOW / SOON)
-                if let label = timeStatus.badgeLabel {
-                    Text(label)
-                        .font(.system(size: 9, weight: .black))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(
-                            isCurrent ? .white.opacity(0.25) : timeStatus.badgeColor.opacity(0.35),
-                            in: Capsule()
-                        )
-                }
-
-                // Tracker badge (PRAYED / MISSED)
-                if isPrayed || isMissed {
-                    HStack(spacing: 3) {
-                        Image(systemName: isPrayed ? "checkmark" : "xmark")
-                            .font(.system(size: 7, weight: .bold))
-                        Text(isPrayed ? "PRAYED" : "MISSED")
-                            .font(.system(size: 9, weight: .bold))
+                // Col 2: prayer name + ripple dot if current
+                HStack(spacing: 6) {
+                    Text(entry.label)
+                        .font(.system(size: 13, weight: isCurrent ? .semibold : .regular))
+                        .foregroundStyle(rowNameColor)
+                    if isCurrent {
+                        PulsingDot(color: entry.prayer.onColor, size: 6)
                     }
-                    .foregroundStyle(isPrayed ? AppColor.softGreen : AppColor.softRed)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        (isPrayed ? AppColor.softGreen : AppColor.softRed).opacity(0.18),
-                        in: Capsule()
-                    )
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
+                // Col 3: tracker status or soon — fixed
+                Group {
+                    if isSoon {
+                        Text("Soon")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(AppColor.softAmber)
+                    } else if let ts = trackerStatus, entry.prayer.isPrayer {
+                        Image(systemName: ts.icon)
+                            .font(.system(size: 12))
+                            .foregroundStyle(ts.color)
+                    }
+                }
+                .frame(width: 36, alignment: .center)
+
+                // Col 4: time — fixed
                 Text(entry.time)
                     .font(.system(size: 12, weight: isCurrent ? .bold : .regular, design: .monospaced))
                     .foregroundStyle(isCurrent ? countdownColor : rowTimeColor)
-
-                Image(systemName: isPrayed ? "checkmark.circle.fill" : isMissed ? "xmark.circle" : "circle.dotted")
-                    .font(.system(size: isCurrent ? 8 : 13))
-                    .foregroundStyle(
-                        isCurrent   ? entry.prayer.color :
-                        isPrayed    ? AppColor.softGreen :
-                        isMissed    ? AppColor.softRed :
-                                      Color.white.opacity(0.3)
-                    )
+                    .frame(width: 65, alignment: .trailing)
             }
-            .padding(.leading, 10)
+            .padding(.leading, 8)
             .padding(.trailing, 14)
             .padding(.vertical, 9)
         }
         .background {
-            if isCurrent {
-                entry.prayer.color.opacity(0.15)
-            } else if isPrayed {
-                AppColor.softGreen.opacity(0.07)
-            } else if isMissed {
-                AppColor.softRed.opacity(0.07)
-            } else {
-                Color.clear
-            }
+            if isCurrent { entry.prayer.color.opacity(0.15) }
         }
     }
 
     // MARK: Colours
 
     private var rowIconColor: Color {
-        switch timeStatus {
+        switch entry.status {
         case .current:  return entry.prayer.color
         case .soon:     return AppColor.softAmber
-        default:        return .white.opacity(0.65)
+        case .upcoming: return .white.opacity(0.65)
         }
     }
 
     private var rowNameColor: Color {
-        switch timeStatus {
-        case .current:  return .white
-        case .soon:     return .white
-        default:        return .white.opacity(0.75)
+        switch entry.status {
+        case .current, .soon: return .white
+        case .upcoming:       return .white.opacity(0.75)
         }
     }
 
@@ -140,9 +112,9 @@ struct PopoverView: View {
     let settingsVM: SettingsViewModel
     var onOpenApp: () -> Void = {}
     var onOpenSettings: () -> Void = {}
-    @Environment(HijriCalendarViewModel.self) private var hijriVM
-    @Environment(ThemeViewModel.self)          private var themeVM
-    @State private var prayed          = false
+    @Environment(HijriCalendarViewModel.self)     private var hijriVM
+    @Environment(ThemeViewModel.self)             private var themeVM
+    @Environment(PrayerTrackerViewModel.self)     private var trackerVM
     @State private var showLocations = false
     @State private var vm            = LocationViewModel.shared
     private let currentHour = Calendar.current.component(.hour, from: Date())
@@ -213,22 +185,10 @@ struct PopoverView: View {
                 .font(.system(size: 38, weight: .heavy, design: .monospaced))
                 .foregroundStyle(heroCountdownColor)
 
-            Button {
-                withAnimation(.spring(duration: 0.2)) { prayed.toggle() }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: prayed ? "checkmark.circle.fill" : "checkmark.circle")
-                        .font(.system(size: 12))
-                    Text(prayed ? "Prayed ✓" : "I Prayed")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .foregroundStyle(prayed ? prayerAccentColor : Color.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 7)
-                .background(prayed ? .white : .white.opacity(0.15), in: Capsule())
+            if activePeriod.isPrayer {
+                IPrayedButton(prayer: activePeriod, date: Date())
+                    .padding(.top, 2)
             }
-            .buttonStyle(.plain)
-            .padding(.top, 2)
         }
         .padding(.vertical, 10)
     }
@@ -236,9 +196,13 @@ struct PopoverView: View {
     // MARK: Prayer list
     private var prayerList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(prayerVM.entries.enumerated()), id: \.element.id) { index, entry in
-                PopoverPrayerRow(entry: entry, countdown: prayerVM.countdownText)
-                if index < prayerVM.entries.count - 1 {
+            ForEach(Array(prayerVM.displayEntries.enumerated()), id: \.element.id) { index, entry in
+                PopoverPrayerRow(
+                    entry: entry,
+                    countdown: prayerVM.countdownText,
+                    trackerStatus: trackerVM.records(for: prayerVM.displayDate).first(where: { $0.prayer == entry.prayer })?.status
+                )
+                if index < prayerVM.displayEntries.count - 1 {
                     Divider().padding(.leading, 46).opacity(0.08)
                 }
             }

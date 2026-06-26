@@ -17,6 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     private var locationVM    : LocationViewModel!
     private var notificationVM: NotificationViewModel!
     private var hijriVM       : HijriCalendarViewModel!
+    private var trackerVM     : PrayerTrackerViewModel!
     private var statusTimer   : Timer?
     private var wakeObserver  : Any?
 
@@ -73,6 +74,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         repo.seedIfEmpty()
 
         menuBarVM = PrayerTimeViewModel()
+        menuBarVM.onEntriesLoaded = { [weak self] _ in
+            self?.trackerVM.seedGaps()
+        }
         menuBarVM.update(settings: settingsVM.settings.prayerCalculationSettings)
         if let location = repo.getActiveLocation() {
             menuBarVM.load(location: location)
@@ -96,6 +100,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             guard let self else { return }
             print("💻 Mac woke — running scheduleIfNeeded")
             self.notificationVM.rescheduleIfNeeded()
+            // Re-load prayer times → triggers onEntriesLoaded → fillGaps
+            if let loc = ServiceLocator.shared.resolve(LocationRepository.self).getActiveLocation() {
+                self.menuBarVM.load(location: loc)
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            if let loc = ServiceLocator.shared.resolve(LocationRepository.self).getActiveLocation() {
+                self.menuBarVM.load(location: loc)
+            }
         }
 
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -204,7 +223,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             self?.closePopover()
             self?.showMainWindow(tab: .settings)
         }
-        panel.contentView = NSHostingView(rootView: popoverView.environment(hijriVM).environment(themeVM))
+        panel.contentView = NSHostingView(rootView: popoverView.environment(hijriVM).environment(themeVM).environment(trackerVM).environment(menuBarVM))
         popoverPanel = panel
     }
 
@@ -283,6 +302,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         window.contentView = NSHostingView(rootView: MainWindowView(initialTab: tab)
             .environment(settingsVM)
             .environment(themeVM)
+            .environment(trackerVM)
             .environment(menuBarVM)
             .environment(locationVM)
             .environment(notificationVM)
@@ -308,6 +328,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         let storage = ServiceLocator.shared.resolve(SettingsStorageProtocol.self)
         self.settingsVM     = SettingsViewModel(storage: storage)
         self.themeVM        = ThemeViewModel()
+        self.trackerVM      = PrayerTrackerViewModel()
+
         self.locationVM     = .shared
         self.notificationVM = NotificationViewModel()
         self.hijriVM        = HijriCalendarViewModel(offset: storage.load()?.hijriAdjustment ?? 0)
@@ -345,7 +367,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         panel.isMovableByWindowBackground = true
         panel.contentView             = NSHostingView(rootView: FloatingPanelView(prayerVM: menuBarVM, onOpenSettings: { [weak self] in
             self?.showMainWindow(tab: .settings)
-        }).environment(settingsVM).environment(themeVM).environment(hijriVM))
+        }).environment(settingsVM).environment(themeVM).environment(trackerVM).environment(hijriVM).environment(menuBarVM))
 
         let defaults = UserDefaults.standard
         if defaults.object(forKey: Keys.Defaults.floatingPanelX) != nil {

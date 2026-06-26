@@ -1,8 +1,9 @@
 import SwiftUI
 
 struct TodayView: View {
-    @Environment(SettingsViewModel.self) private var settingsVM
-    @Environment(PrayerTimeViewModel.self) private var prayerVM
+    @Environment(SettingsViewModel.self)         private var settingsVM
+    @Environment(PrayerTimeViewModel.self)       private var prayerVM
+    @Environment(PrayerTrackerViewModel.self)    private var trackerVM
 
     var body: some View {
         VStack(spacing: 0) {
@@ -11,13 +12,14 @@ struct TodayView: View {
                     // Top row: next prayer card + quick stats
                     HStack(alignment: .top, spacing: 16) {
                         NextPrayerHeroCard(vm: prayerVM)
-                        QuickStatsColumn(entries: prayerVM.entries)
+                        QuickStatsColumn(entries: prayerVM.displayEntries)
                     }
                     .padding(.horizontal, 24)
 
                     // Prayer times list
-                    PrayerListCard(entries: prayerVM.entries)
+                    PrayerListCard(entries: prayerVM.displayEntries, trackerRecords: trackerVM.records(for: prayerVM.displayDate))
                         .padding(.horizontal, 24)
+
                 }
                 .padding(.top, 20)
                 .padding(.bottom, 24)
@@ -42,21 +44,17 @@ struct TodayView: View {
 
 struct NextPrayerHeroCard: View {
     let vm: PrayerTimeViewModel
-    @State private var prayed = false
+    @Environment(PrayerTrackerViewModel.self) private var trackerVM
 
-    private var nextEntry: PrayerEntry? { vm.nextPrayerEntry }
-    private var activePeriod: Prayer { vm.currentPrayer ?? vm.nextPrayerEntry?.prayer ?? .dhuhr }
-    private var gradientColor: Color { activePeriod.color }
+    private var nextEntry: PrayerEntry?    { vm.nextPrayerEntry }
+    private var activePeriod: Prayer       { vm.currentPrayer ?? vm.nextPrayerEntry?.prayer ?? .dhuhr }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(LinearGradient(
-                        colors: activePeriod.gradient,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
+                    .fill(LinearGradient(colors: activePeriod.gradient,
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("NEXT PRAYER")
@@ -82,17 +80,9 @@ struct NextPrayerHeroCard: View {
                             .foregroundStyle(.white.opacity(0.55))
                     }
 
-                    Button {
-                        withAnimation(.spring(duration: 0.25)) { prayed.toggle() }
-                    } label: {
-                        Label(prayed ? "Prayed ✓" : "I Prayed", systemImage: prayed ? "checkmark.circle.fill" : "checkmark.circle")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(prayed ? gradientColor : .white)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 9)
-                            .background(prayed ? .white : .white.opacity(0.15), in: RoundedRectangle(cornerRadius: 9))
+                    if activePeriod.isPrayer {
+                        IPrayedButton(prayer: activePeriod, date: Date())
                     }
-                    .buttonStyle(.plain)
                 }
                 .padding(22)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,6 +96,7 @@ struct NextPrayerHeroCard: View {
 
 struct QuickStatsColumn: View {
     let entries: [PrayerEntry]
+    @Environment(PrayerTrackerViewModel.self) private var trackerVM
 
     private var sunriseTime: String {
         entries.first(where: { $0.prayer == .sunrise })?.time ?? "--:--"
@@ -116,14 +107,14 @@ struct QuickStatsColumn: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            StatCard(icon: "flame.fill",           iconColor: Prayer.sunrise.color,
-                     label: "Streak",              value: "-- days")
+            StatCard(icon: "flame.fill",            iconColor: Prayer.sunrise.color,
+                     label: "Streak",               value: "\(trackerVM.currentStreak) days")
             StatCard(icon: "checkmark.circle.fill", iconColor: Prayer.fajr.color,
-                     label: "Today",               value: "--/5 prayed")
-            StatCard(icon: "sunrise.fill",         iconColor: Prayer.sunrise.color,
-                     label: "Sunrise",             value: sunriseTime)
-            StatCard(icon: "sunset.fill",          iconColor: Prayer.maghrib.color,
-                     label: "Sunset",              value: maghribTime)
+                     label: "Today",                value: "\(trackerVM.todayCount)/5 prayed")
+            StatCard(icon: "sunrise.fill",          iconColor: Prayer.sunrise.color,
+                     label: "Sunrise",              value: sunriseTime)
+            StatCard(icon: "sunset.fill",           iconColor: Prayer.maghrib.color,
+                     label: "Sunset",               value: maghribTime)
         }
         .frame(width: 160)
     }
@@ -164,6 +155,7 @@ struct StatCard: View {
 
 struct PrayerListCard: View {
     let entries: [PrayerEntry]
+    let trackerRecords: [PrayerRecord]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -179,7 +171,10 @@ struct PrayerListCard: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                    PrayerListRow(entry: entry)
+                    PrayerListRow(
+                        entry: entry,
+                        record: trackerRecords.first(where: { $0.prayer == entry.prayer })
+                    )
                     if index < entries.count - 1 {
                         Divider().padding(.leading, 52).opacity(0.35)
                     }
@@ -193,63 +188,100 @@ struct PrayerListCard: View {
 }
 
 struct PrayerListRow: View {
-    let entry: PrayerEntry
+    let entry : PrayerEntry
+    let record: PrayerRecord?
+
+    @Environment(PrayerTrackerViewModel.self) private var trackerVM
+    @State private var showPicker = false
+
+    private var isCurrent: Bool { entry.status == .current }
+    private var isSoon:    Bool { entry.status == .soon }
+    private var ts: PrayerTrackerStatus? { record?.status }
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 0) {
+            // Col 1: icon
             Image(systemName: entry.prayer.icon)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(entry.prayer.color.opacity(entry.status == .prayed || entry.status == .passed ? 0.35 : 1))
-                .frame(width: 22)
+                .font(.system(size: 15, weight: isCurrent ? .semibold : .regular))
+                .foregroundStyle(iconColor)
+                .frame(width: 36, alignment: .center)
 
-            Text(entry.label)
-                .font(.system(size: 14, weight: entry.isCurrent ? .semibold : .regular))
-                .foregroundStyle(entry.isCurrent ? .primary : entry.status == .prayed || entry.status == .passed ? .secondary : .primary)
+            // Col 2: name + pulsing dot
+            HStack(spacing: 6) {
+                Text(entry.label)
+                    .font(.system(size: 14, weight: isCurrent ? .semibold : .regular))
+                    .foregroundStyle(isCurrent ? entry.prayer.color : entry.isPast ? .secondary : .primary)
+                if isCurrent { PulsingDot(color: entry.prayer.color, size: 7) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
+            // Col 3: action area
+            actionArea
+                .frame(width: 110, alignment: .leading)
 
+            // Col 4: time
             Text(entry.time)
-                .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                .foregroundStyle(entry.isAlert ? AppColor.alert : entry.isCurrent ? entry.prayer.color : .secondary)
-
-            statusView
-                .frame(width: 82, alignment: .trailing)
+                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                .foregroundStyle(timeColor)
+                .frame(width: 70, alignment: .trailing)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        // flat colour — no corner radius — clipShape on card handles edges
-        .background(
-            entry.isCurrent ? entry.prayer.color.opacity(0.09) :
-            entry.isAlert   ? AppColor.alert.opacity(0.05) : Color.clear
-        )
+        .padding(.vertical, 10)
+        .background(rowBackground)
     }
 
     @ViewBuilder
-    private var statusView: some View {
-        switch entry.status {
-        case .prayed:
-            Label("Prayed", systemImage: "checkmark.circle.fill")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(entry.prayer.color)
-        case .passed:
-            Label("Passed", systemImage: "checkmark.circle")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        case .current:
-            Text("Now")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(entry.prayer.color, in: Capsule())
-        case .upcoming:
-            Text("Upcoming")
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
-        case .alert:
-            Label("Soon", systemImage: "bell.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(AppColor.alert)
+    private var actionArea: some View {
+        if isSoon {
+            HStack(spacing: 4) {
+                Image(systemName: "bell.fill").font(.system(size: 10))
+                Text(entry.status.label).font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(AppColor.softAmber)
+        } else if entry.prayer.isPrayer, isCurrent || entry.isPast {
+            HStack(spacing: 6) {
+                if let ts {
+                    HStack(spacing: 4) {
+                        Image(systemName: ts.icon).font(.system(size: 10))
+                        Text(ts.shortLabel).font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(ts.color)
+                }
+                Button { showPicker = true } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .padding(4)
+                        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 5))
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showPicker, arrowEdge: .bottom) {
+                    PrayerStatusPicker(prayer: entry.prayer, date: entry.date ?? Date(), record: record, isCurrent: isCurrent) { newStatus in
+                        if let record { trackerVM.mark(record, as: newStatus) }
+                        else { trackerVM.create(prayer: entry.prayer, prayerTime: entry.date ?? Date(), status: newStatus) }
+                        showPicker = false
+                    }
+                }
+            }
         }
+    }
+
+    private var rowBackground: Color {
+        if isCurrent { return entry.prayer.color.opacity(0.15) }
+        if isSoon    { return AppColor.softAmber.opacity(0.05) }
+        return .clear
+    }
+
+    private var iconColor: Color {
+        if isCurrent { return entry.prayer.color }
+        if isSoon    { return AppColor.softAmber }
+        if let ts { return ts.color }
+        return Color.secondary
+    }
+
+    private var timeColor: Color {
+        if isCurrent { return entry.prayer.color }
+        if isSoon    { return AppColor.softAmber }
+        return .secondary
     }
 }

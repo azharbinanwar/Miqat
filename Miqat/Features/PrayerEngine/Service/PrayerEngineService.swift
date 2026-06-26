@@ -4,9 +4,12 @@ import Adhan
 protocol PrayerEngineServiceProtocol {
     func calculateTimes(
         for date: Date,
+        referenceDate: Date?,
         location: Location,
         settings: PrayerCalculationSettings
     ) -> [PrayerEntry]
+
+    func prayers(from startDate: Date, to endDate: Date, location: Location, settings: PrayerCalculationSettings) -> [(Prayer, Date)]
 
     func currentPrayer(from entries: [PrayerEntry], at date: Date) -> Prayer?
     func nextPrayer(from entries: [PrayerEntry], at date: Date) -> PrayerEntry?
@@ -19,6 +22,7 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
 
     func calculateTimes(
         for date: Date,
+        referenceDate: Date? = nil,
         location: Location,
         settings: PrayerCalculationSettings
     ) -> [PrayerEntry] {
@@ -38,23 +42,24 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
         )
         params.rounding = settings.rounding.adhanRounding
 
-        let dateComponents = date.gregorianLocalComponents
+        let cityTimezone   = TimeZone(identifier: location.timezone) ?? .current
+        let dateComponents = date.gregorianComponents(in: cityTimezone)
         guard let prayerTimes = PrayerTimes(coordinates: coordinates,
                                             date: dateComponents,
                                             calculationParameters: params)
         else { return [] }
 
-        let formatter = timeFormatter(for: date)
+        let formatter = timeFormatter(for: date, timezone: cityTimezone)
 
+        let statusRef = referenceDate ?? date
         let entries = Prayer.allCases.map { ref -> PrayerEntry in
             let adhanPrayer = ref.adhanPrayer
             let rawDate = prayerTimes.time(for: adhanPrayer)
-            let status: PrayerStatus = {
-                let nextP    = prayerTimes.nextPrayer(at: date)
-                let currentP = prayerTimes.currentPrayer(at: date)
-                if let nextP, let nextRef = Prayer(adhanPrayer: nextP), ref == nextRef       { return .alert }
+            let status: PrayerTimeStatus = {
+                let nextP    = prayerTimes.nextPrayer(at: statusRef)
+                let currentP = prayerTimes.currentPrayer(at: statusRef)
+                if let nextP, let nextRef = Prayer(adhanPrayer: nextP), ref == nextRef       { return .soon }
                 if let currentP, let curRef = Prayer(adhanPrayer: currentP), ref == curRef   { return .current }
-                if rawDate < date { return .passed }
                 return .upcoming
             }()
             let idx = Prayer.allCases.firstIndex(of: ref) ?? 0
@@ -63,12 +68,24 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
                 prayer: ref,
                 time: formatter.string(from: rawDate),
                 date: rawDate,
-                madhab: settings.madhab.rawValue,
                 status: status
             )
         }
 
         return entries
+    }
+
+    func prayers(from startDate: Date, to endDate: Date, location: Location, settings: PrayerCalculationSettings) -> [(Prayer, Date)] {
+        let cal = Calendar.current
+        var result: [(Prayer, Date)] = []
+        var day = cal.startOfDay(for: startDate)
+        let endDay = cal.startOfDay(for: endDate)
+        while day <= endDay {
+            let entries = calculateTimes(for: day, referenceDate: endDate, location: location, settings: settings)
+            result += entries.compactMap { e in e.date.map { (e.prayer, $0) } }
+            day = cal.date(byAdding: .day, value: 1, to: day)!
+        }
+        return result.sorted { $0.1 < $1.1 }
     }
 
     func currentPrayer(from entries: [PrayerEntry], at date: Date) -> Prayer? {
@@ -78,8 +95,7 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
     func nextPrayer(from entries: [PrayerEntry], at date: Date) -> PrayerEntry? {
         entries.first { entry in
             guard let entryDate = entry.date else { return false }
-            let statusOk = entry.status == .alert || entry.status == .upcoming
-            return statusOk && entryDate > date
+            return entry.status == .soon || (entry.status == .upcoming && entryDate > date)
         }
     }
 }
@@ -87,11 +103,11 @@ struct PrayerEngineService: PrayerEngineServiceProtocol {
 // MARK: - Helpers
 
 private extension PrayerEngineService {
-    func timeFormatter(for baseDate: Date) -> DateFormatter {
+    func timeFormatter(for baseDate: Date, timezone: TimeZone = .current) -> DateFormatter {
         let fmt = DateFormatter()
         fmt.timeStyle = .short
         fmt.dateStyle = .none
-        fmt.timeZone = .current
+        fmt.timeZone = timezone
         return fmt
     }
 }

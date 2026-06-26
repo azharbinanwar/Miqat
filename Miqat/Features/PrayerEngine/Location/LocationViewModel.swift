@@ -180,7 +180,8 @@ final class LocationViewModel {
             icon:  "mappin.circle.fill",
             city:  result.city,
             latitude:  result.coordinate.latitude,
-            longitude: result.coordinate.longitude
+            longitude: result.coordinate.longitude,
+            timezone:  result.timezone
         )
         repo.add(loc)
         repo.setActiveId(loc.id)

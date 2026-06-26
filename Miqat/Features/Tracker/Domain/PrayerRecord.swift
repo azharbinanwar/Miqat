@@ -7,8 +7,8 @@ struct PrayerRecord: Identifiable, Codable {
     var status:     PrayerTrackerStatus
     var markedAt:   Date?
 
-    init(prayer: Prayer, prayerTime: Date, status: PrayerTrackerStatus = .upcoming, markedAt: Date? = nil) {
-        self.id         = UUID()
+    init(id: UUID = UUID(), prayer: Prayer, prayerTime: Date, status: PrayerTrackerStatus = .missed, markedAt: Date? = nil) {
+        self.id         = id
         self.prayer     = prayer
         self.prayerTime = prayerTime
         self.status     = status

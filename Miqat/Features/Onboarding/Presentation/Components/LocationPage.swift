@@ -54,7 +54,7 @@ struct LocationPage: View {
                                 vm.locationVM.cancelFetch()
                                 vm.locationVM.addFromSearch(
                                     CityResult(name: preset.label, city: preset.city,
-                                               coordinate: preset.coordinate),
+                                               coordinate: preset.coordinate, timezone: preset.timezone),
                                     label: preset.label
                                 )
                             } label: {

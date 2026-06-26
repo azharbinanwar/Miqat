@@ -2,21 +2,21 @@ import SwiftUI
 
 
 enum AppColor {
-    // MARK: - Prayer colors
-    static let fajr    = Color(hex: "#0D9488")
-    static let sunrise = Color(hex: "#F59E0B")
-    static let dhuhr   = Color(hex: "#06B6D4")
-    static let asr     = Color(hex: "#D97706")
-    static let maghrib = Color(hex: "#9333EA")
-    static let isha    = Color(hex: "#4F46E5")
+    // MARK: - Prayer colors (sky-matched)
+    static let fajr    = Color(hex: "#6366F1")  // dark indigo — pre-dawn
+    static let sunrise = Color(hex: "#FB923C")  // warm orange — first light
+    static let dhuhr   = Color(hex: "#38BDF8")  // bright sky blue — high noon
+    static let asr     = Color(hex: "#F59E0B")  // golden amber — afternoon sun
+    static let maghrib = Color(hex: "#F43F5E")  // deep rose-red — burning sunset
+    static let isha    = Color(hex: "#312E81")  // near-black indigo — full night
 
     // MARK: - Gradient backgrounds
-    static let deepNavy    = Color(hex: "#0F172A")
-    static let darkNavy    = Color(hex: "#1E1B4B")
+    static let deepNavy    = Color(hex: "#020617")  // near black
+    static let darkNavy    = Color(hex: "#1E1B4B")  // deep indigo night
     static let purple      = Color(hex: "#4C1D95")
-    static let burntOrange = Color(hex: "#92400E")
-    static let deepTeal    = Color(hex: "#0F766E")
-    static let deepRed     = Color(hex: "#7C2D12")
+    static let burntOrange = Color(hex: "#7C2D12")  // deep red-brown
+    static let deepTeal    = Color(hex: "#0C4A6E")  // deep sky blue
+    static let deepRed     = Color(hex: "#881337")  // deep crimson sunset
 
     // MARK: - Accent picker options
     static let accentTeal   = Color(hex: "#0D9488")

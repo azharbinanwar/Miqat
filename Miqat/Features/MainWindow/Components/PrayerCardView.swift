@@ -24,10 +24,6 @@ struct PrayerCardView: View {
                     .foregroundStyle(timeColor)
                     .minimumScaleFactor(0.8)
 
-                Text(entry.madhab)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-
                 Spacer()
 
                 // Status
@@ -57,33 +53,29 @@ struct PrayerCardView: View {
 
     private var statusIcon: String {
         switch entry.status {
-        case .prayed:   return "checkmark.circle.fill"
-        case .passed:   return "checkmark.circle.fill"
         case .current:  return "circle.fill"
-        case .upcoming: return "bell"
-        case .alert:    return "bell.fill"
+        case .soon:     return "bell.fill"
+        case .upcoming: return entry.isPast ? "checkmark.circle" : "bell"
         }
     }
 
     private var statusColor: Color {
         switch entry.status {
-        case .prayed:   return entry.prayer.color
-        case .passed:   return entry.prayer.color
         case .current:  return entry.prayer.color
-        case .upcoming: return .secondary
-        case .alert:    return AppColor.alert
+        case .soon:     return AppColor.softAmber
+        case .upcoming: return entry.isPast ? entry.prayer.color : .secondary
         }
     }
 
     private var timeColor: Color {
-        if entry.isAlert { return AppColor.alert }
-        if entry.isCurrent { return entry.prayer.color }
+        if entry.status == .soon    { return AppColor.softAmber }
+        if entry.isCurrent          { return entry.prayer.color }
         return .primary
     }
 
     private var borderColor: Color {
-        if entry.isAlert   { return AppColor.alert.opacity(0.6) }
-        if entry.isCurrent { return entry.prayer.color.opacity(0.6) }
+        if entry.status == .soon   { return AppColor.softAmber.opacity(0.6) }
+        if entry.isCurrent         { return entry.prayer.color.opacity(0.6) }
         return Color.primary.opacity(0.08)
     }
 
@@ -92,7 +84,7 @@ struct PrayerCardView: View {
         if entry.isCurrent {
             RoundedRectangle(cornerRadius: 14)
                 .fill(entry.prayer.color.opacity(0.08))
-        } else if entry.isAlert {
+        } else if entry.status == .soon {
             RoundedRectangle(cornerRadius: 14)
                 .fill(AppColor.alert.opacity(0.06))
         } else {

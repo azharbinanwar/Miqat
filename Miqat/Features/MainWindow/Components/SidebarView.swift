@@ -39,6 +39,9 @@ enum SidebarSection: String {
 struct SidebarView: View {
     @Binding var selected: SidebarItem
     @Environment(LocationViewModel.self) private var locationVM
+    #if DEBUG
+    @State private var showDebugSeed = false
+    #endif
 
     private let sections: [(SidebarSection, [SidebarItem])] = [
         (.main,  [.today, .monthly]),
@@ -52,6 +55,10 @@ struct SidebarView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 20)
                 .padding(.bottom, 16)
+                #if DEBUG
+                .onLongPressGesture(minimumDuration: 0.6) { showDebugSeed = true }
+                .sheet(isPresented: $showDebugSeed) { DebugSeedSheet() }
+                #endif
 
             Divider().opacity(0.4)
 

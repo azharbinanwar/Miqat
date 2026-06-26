@@ -42,30 +42,31 @@ enum Prayer: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    var onColor: Color {
+        switch self {
+        case .fajr:    return .white
+        case .sunrise: return Color(hex: "#7C2D12")
+        case .dhuhr:   return .white
+        case .asr:     return Color(hex: "#7C2D12")
+        case .maghrib: return .white
+        case .isha:    return .white
+        }
+    }
+
     var fajrAngle: Double?  { self == .fajr ? 18.0 : nil }
     var ishaAngle: Double?  { self == .isha ? 18.0 : nil }
     var isPrayer:  Bool     { self != .sunrise }
 
     var gradient: [Color] {
         switch self {
-        case .fajr:    return [AppColor.deepNavy,    color]
-        case .sunrise: return [AppColor.burntOrange, color]
-        case .dhuhr:   return [AppColor.deepTeal,    color]
-        case .asr:     return [AppColor.burntOrange, color]
-        case .maghrib: return [AppColor.deepRed,     color]
-        case .isha:    return [AppColor.deepNavy,    color]
+        case .fajr:    return [AppColor.deepNavy,    color]           // near black → indigo
+        case .sunrise: return [AppColor.burntOrange, color]           // deep red-brown → warm orange
+        case .dhuhr:   return [AppColor.deepTeal,    color]           // deep sky → bright blue
+        case .asr:     return [AppColor.burntOrange, color]           // deep brown → golden amber
+        case .maghrib: return [AppColor.deepRed,     color]           // deep crimson → rose red
+        case .isha:    return [AppColor.deepNavy,    AppColor.darkNavy] // near black → deep indigo
         }
     }
-}
-
-// MARK: - PrayerStatus (live display state for today's list)
-
-enum PrayerStatus: String, Codable {
-    case prayed   = "Prayed"
-    case passed   = "Passed"
-    case current  = "Coming up"
-    case upcoming = "Upcoming"
-    case alert    = "Soon"
 }
 
 // MARK: - PrayerEntry (a calculated prayer slot for a given day)
@@ -75,24 +76,18 @@ struct PrayerEntry: Identifiable, Codable {
     var prayer: Prayer
     let time: String
     let date: Date?
-    let madhab: String
-    var status: PrayerStatus
+    var status: PrayerTimeStatus
     var isCurrent: Bool = false
-    var isAlert: Bool   = false
 }
 
 extension PrayerEntry {
     var label: String { prayer.label }
     var icon:  String { prayer.icon }
     var color: Color  { prayer.color }
-}
 
-extension PrayerEntry {
-    var timeStatus: PrayerTimeStatus {
-        if isCurrent || status == .current { return .current }
-        if isAlert   || status == .alert   { return .soon }
-        if status == .passed               { return .passed }
-        return .upcoming
+    var isPast: Bool {
+        guard let date else { return false }
+        return date < Date()
     }
 }
 
@@ -101,12 +96,10 @@ extension PrayerEntry {
         prayer: Prayer,
         time: String,
         date: Date? = nil,
-        madhab: String = "Hanafi",
-        status: PrayerStatus = .upcoming,
-        isCurrent: Bool = false,
-        isAlert: Bool = false
+        status: PrayerTimeStatus = .upcoming,
+        isCurrent: Bool = false
     ) -> PrayerEntry {
         PrayerEntry(id: UUID(), prayer: prayer, time: time, date: date,
-                    madhab: madhab, status: status, isCurrent: isCurrent, isAlert: isAlert)
+                    status: status, isCurrent: isCurrent)
     }
 }

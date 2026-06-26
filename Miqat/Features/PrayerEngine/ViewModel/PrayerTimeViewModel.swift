@@ -4,6 +4,8 @@ import Foundation
 final class PrayerTimeViewModel {
     var state: AsyncState<[PrayerEntry]> = .idle
     private(set) var liveNow: Date = Date()
+    private(set) var yesterdayEntries: [PrayerEntry] = []
+    var onEntriesLoaded: (([PrayerEntry]) -> Void)?
 
     private let service: PrayerEngineServiceProtocol
     private var location: Location?
@@ -73,11 +75,15 @@ final class PrayerTimeViewModel {
         self.location = location
         lastMinute = Calendar.current.component(.minute, from: date)
         state = .loading
-        let result = service.calculateTimes(for: date, location: location, settings: settings)
+        let result = service.calculateTimes(for: date, referenceDate: date, location: location, settings: settings)
         state = .success(result)
+        onEntriesLoaded?(result)
+
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: date) ?? date
+        yesterdayEntries = service.calculateTimes(for: yesterday, referenceDate: date, location: location, settings: settings)
 
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: date) ?? date
-        let tomorrowEntries = service.calculateTimes(for: tomorrow, location: location, settings: settings)
+        let tomorrowEntries = service.calculateTimes(for: tomorrow, referenceDate: date, location: location, settings: settings)
         tomorrowFajr = tomorrowEntries.first(where: { $0.prayer == .fajr })
     }
 
@@ -90,13 +96,31 @@ final class PrayerTimeViewModel {
 
     // MARK: - Queries
 
-    var entries: [PrayerEntry] {
+    private var entries: [PrayerEntry] {
         guard case let .success(items) = state else { return [] }
         return items
     }
 
+    // Always today's computed entries — never yesterday's, regardless of displayEntries
+    var todayEntries: [PrayerEntry] { entries }
+
+    // Before Fajr → show yesterday's prayers; after → today's
+    var displayEntries: [PrayerEntry] {
+        let fajr = entries.first(where: { $0.prayer == .fajr })?.date
+        if let fajr, liveNow < fajr { return yesterdayEntries }
+        return entries
+    }
+
+    var displayDate: Date {
+        let fajr = entries.first(where: { $0.prayer == .fajr })?.date
+        if let fajr, liveNow < fajr {
+            return Calendar.current.date(byAdding: .day, value: -1, to: liveNow) ?? liveNow
+        }
+        return liveNow
+    }
+
     var currentPrayer: Prayer? {
-        service.currentPrayer(from: entries, at: liveNow)
+        service.currentPrayer(from: displayEntries, at: liveNow)
     }
 
     var nextPrayerEntry: PrayerEntry? {

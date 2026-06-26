@@ -15,15 +15,16 @@ struct TrackerDayColumn: Identifiable {
     let id = UUID()
     let day: String
     let date: Int
+    let fullDate: Date
     let isToday: Bool
-    let cells: [PrayerTrackerStatus]   // one per prayer: fajr dhuhr asr maghrib isha
+    let cells: [PrayerTrackerStatus?]  // nil = no record
 }
 
 // MARK: - Generic Tiles
 
 // One generic cell tile — prayer × day intersection
 struct TrackerCellTile: View {
-    let status: PrayerTrackerStatus
+    let status: PrayerTrackerStatus?  // nil = future, no record
     let isToday: Bool
 
     var body: some View {
@@ -31,9 +32,11 @@ struct TrackerCellTile: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(background)
 
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(iconColor)
+            if let status {
+                Image(systemName: status.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(status.color)
+            }
         }
         .frame(width: 44, height: 44)
         .overlay(
@@ -43,30 +46,8 @@ struct TrackerCellTile: View {
     }
 
     private var background: Color {
-        switch status {
-        case .prayedOnTime: return AppColor.accentTeal.opacity(0.15)
-        case .prayedKaza:   return AppColor.softAmber.opacity(0.15)
-        case .missed:       return AppColor.alert.opacity(0.12)
-        case .upcoming:     return AppColor.accentGold.opacity(0.1)
-        }
-    }
-
-    private var icon: String {
-        switch status {
-        case .prayedOnTime: return "checkmark"
-        case .prayedKaza:   return "checkmark"
-        case .missed:       return "xmark"
-        case .upcoming:     return "clock"
-        }
-    }
-
-    private var iconColor: Color {
-        switch status {
-        case .prayedOnTime: return AppColor.accentTeal
-        case .prayedKaza:   return AppColor.softAmber
-        case .missed:       return AppColor.alert
-        case .upcoming:     return AppColor.accentGold
-        }
+        guard let status else { return Color.primary.opacity(0.04) }
+        return status.color.opacity(0.15)
     }
 }
 
@@ -96,27 +77,101 @@ struct TrackerDayHeader: View {
     }
 }
 
+// MARK: - Tappable Cell (owns popover — anchors to itself)
+
+struct TappableTrackerCell: View {
+    @Environment(PrayerTrackerViewModel.self) private var trackerVM
+
+    let prayer   : Prayer
+    let status   : PrayerTrackerStatus?
+    let record   : PrayerRecord?
+    let date     : Date        // startOfDay
+    let isToday  : Bool
+    let isFuture : Bool
+    let isCurrent: Bool
+    var onUpdate : () -> Void
+
+    @State private var showPicker = false
+
+    var body: some View {
+        TrackerCellTile(status: status, isToday: isToday)
+            .opacity(isFuture ? 0.3 : 1)
+            .onTapGesture { if !isFuture { showPicker = true } }
+            .popover(isPresented: $showPicker, arrowEdge: .bottom) {
+                PrayerStatusPicker(prayer: prayer, date: date, record: record, isCurrent: isCurrent) { newStatus in
+                    if let record {
+                        trackerVM.mark(record, as: newStatus)
+                    } else {
+                        trackerVM.create(prayer: prayer, prayerTime: date, status: newStatus)
+                    }
+                    showPicker = false
+                    onUpdate()
+                }
+            }
+    }
+}
+
 // MARK: - Tracker View
 
 struct TrackerView: View {
-    @State private var viewMode: TrackerMode = .week
+    @Environment(PrayerTrackerViewModel.self) private var trackerVM
+    @Environment(PrayerTimeViewModel.self)    private var prayerVM
+    @Environment(SettingsViewModel.self)      private var settingsVM
+    @State private var viewMode   : TrackerMode = .week
+    @State private var weekOffset : Int = 0
+    @State private var monthOffset: Int = 0
+    @State private var weekCache  : [Date: [PrayerRecord]] = [:]
+    @State private var monthCache : [Date: [PrayerRecord]] = [:]
 
     enum TrackerMode: String, CaseIterable {
         case week = "Week"
         case month = "Month"
     }
 
-    private let prayers: [Prayer] = [.fajr, .dhuhr, .asr, .maghrib, .isha]
+    private let prayers = Prayer.allCases.filter(\.isPrayer)
 
-    private let columns: [TrackerDayColumn] = [
-        TrackerDayColumn(day: "MON", date: 12, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime]),
-        TrackerDayColumn(day: "TUE", date: 13, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .missed, .prayedOnTime, .prayedOnTime]),
-        TrackerDayColumn(day: "WED", date: 14, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .prayedOnTime, .missed, .prayedOnTime]),
-        TrackerDayColumn(day: "THU", date: 15, isToday: false, cells: [.prayedOnTime, .missed, .prayedOnTime, .prayedKaza, .prayedOnTime]),
-        TrackerDayColumn(day: "FRI", date: 16, isToday: false, cells: [.prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime, .prayedOnTime]),
-        TrackerDayColumn(day: "SAT", date: 17, isToday: false, cells: [.prayedOnTime, .prayedKaza, .prayedOnTime, .prayedOnTime, .missed]),
-        TrackerDayColumn(day: "SUN", date: 18, isToday: true,  cells: [.prayedOnTime, .prayedOnTime, .upcoming, .upcoming, .upcoming]),
-    ]
+    private var weekStart: Date {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let weekday = cal.component(.weekday, from: today)
+        let daysToMon = (weekday == 1 ? -6 : 2 - weekday)
+        let monday = cal.date(byAdding: .day, value: daysToMon + weekOffset * 7, to: today)!
+        return monday
+    }
+
+    private var columns: [TrackerDayColumn] {
+        let cal  = Calendar.current
+        let days = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
+        return (0..<7).map { offset in
+            let date    = cal.date(byAdding: .day, value: offset, to: weekStart)!
+            let key     = cal.startOfDay(for: date)
+            let records = weekCache[key] ?? []
+            let isToday = cal.isDateInToday(date)
+            let cells   = prayers.map { prayer in
+                records.first(where: { $0.prayer == prayer })?.status
+            }
+            return TrackerDayColumn(day: days[offset], date: cal.component(.day, from: date),
+                                    fullDate: key, isToday: isToday, cells: cells)
+        }
+    }
+
+    private func loadWeek() {
+        weekCache = trackerVM.weekRecords(from: weekStart)
+    }
+
+    private var isAtPresent: Bool {
+        viewMode == .week ? weekOffset >= 0 : monthOffset >= 0
+    }
+
+    private var weekLabel: String {
+        let cal = Calendar.current
+        let end = cal.date(byAdding: .day, value: 6, to: weekStart)!
+        let f   = DateFormatter()
+        f.dateFormat = "d MMM"
+        let f2  = DateFormatter()
+        f2.dateFormat = "d MMM yyyy"
+        return "\(f.string(from: weekStart)) – \(f2.string(from: end))"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -128,6 +183,7 @@ struct TrackerView: View {
                     weekSummaryCards
                     if viewMode == .week {
                         trackerGrid
+                        weekCompletionBars
                     } else {
                         monthlyGrid
                         prayerCompletionBars
@@ -137,13 +193,16 @@ struct TrackerView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { loadWeek(); loadMonth() }
+        .onChange(of: weekOffset)   { loadWeek() }
+        .onChange(of: monthOffset)  { loadMonth() }
     }
 
     // MARK: Top bar
     private var topBar: some View {
         HStack {
             HStack(spacing: 4) {
-                Button { } label: {
+                Button { viewMode == .week ? (weekOffset -= 1) : (monthOffset -= 1) } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.secondary)
@@ -152,18 +211,19 @@ struct TrackerView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("12 – 18 Jun 2026")
+                Text(viewMode == .week ? weekLabel : monthLabel)
                     .font(.system(size: 14, weight: .semibold))
                     .frame(minWidth: 140)
 
-                Button { } label: {
+                Button { viewMode == .week ? (weekOffset += 1) : (monthOffset += 1) } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isAtPresent ? Color.primary.opacity(0.2) : .secondary)
                         .padding(7)
                         .background(.ultraThinMaterial, in: Circle())
                 }
                 .buttonStyle(.plain)
+                .disabled(isAtPresent)
             }
 
             Spacer()
@@ -191,18 +251,37 @@ struct TrackerView: View {
     }
 
     // MARK: Monthly grid
+    private var displayedMonth: Date {
+        let cal  = Calendar.current
+        let base = cal.date(from: cal.dateComponents([.year, .month], from: Date())) ?? Date()
+        return cal.date(byAdding: .month, value: monthOffset, to: base) ?? base
+    }
+
+    private var monthLabel: String {
+        let f = DateFormatter(); f.dateFormat = "MMMM yyyy"
+        return f.string(from: displayedMonth)
+    }
+
     private var monthlyColumns: [TrackerDayColumn] {
-        (1...30).map { day in
-            let isPast   = day < 18
-            let isToday  = day == 18
-            let statuses: [PrayerTrackerStatus] = isPast
-                ? [.prayedOnTime, day % 5 == 0 ? .missed : .prayedOnTime, day % 4 == 0 ? .missed : .prayedOnTime,
-                   day % 7 == 0 ? .missed : .prayedOnTime, day % 3 == 0 ? .missed : .prayedOnTime]
-                : isToday
-                    ? [.prayedOnTime, .prayedOnTime, .upcoming, .upcoming, .upcoming]
-                    : [.upcoming, .upcoming, .upcoming, .upcoming, .upcoming]
-            return TrackerDayColumn(day: "", date: day, isToday: isToday, cells: statuses)
+        let cal   = Calendar.current
+        guard let range = cal.range(of: .day, in: .month, for: displayedMonth),
+              let start = cal.date(from: cal.dateComponents([.year, .month], from: displayedMonth))
+        else { return [] }
+
+        return range.map { dayNum in
+            let date    = cal.date(byAdding: .day, value: dayNum - 1, to: start)!
+            let key     = cal.startOfDay(for: date)
+            let records = monthCache[key] ?? []
+            let isToday = cal.isDateInToday(date)
+            let cells   = prayers.map { prayer in
+                records.first(where: { $0.prayer == prayer })?.status
+            }
+            return TrackerDayColumn(day: "", date: dayNum, fullDate: key, isToday: isToday, cells: cells)
         }
+    }
+
+    private func loadMonth() {
+        monthCache = trackerVM.monthRecords(for: displayedMonth)
     }
 
     private var monthlyGrid: some View {
@@ -242,9 +321,18 @@ struct TrackerView: View {
 
                                 // Small cells across all 30 days
                                 ForEach(monthlyColumns) { col in
-                                    TrackerCellTile(status: col.cells[index], isToday: col.isToday)
-                                        .frame(width: 28, height: 28)
-                                        .scaleEffect(0.63)
+                                    let cal       = Calendar.current
+                                    let today     = cal.startOfDay(for: Date())
+                                    let isFuture  = col.fullDate > today
+                                    let record    = (monthCache[col.fullDate] ?? []).first(where: { $0.prayer == prayer })
+                                    let isCurrent = prayerVM.currentPrayer == prayer && col.isToday
+                                    TappableTrackerCell(
+                                        prayer: prayer, status: col.cells[index], record: record,
+                                        date: col.fullDate, isToday: col.isToday,
+                                        isFuture: isFuture, isCurrent: isCurrent
+                                    ) { loadWeek(); loadMonth() }
+                                    .frame(width: 28, height: 28)
+                                    .scaleEffect(0.63)
                                 }
                             }
                             .padding(.horizontal, 16)
@@ -263,6 +351,48 @@ struct TrackerView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
 
+    // MARK: Weekly completion bars
+    private var weekCompletionBars: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Weekly Completion")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(weekLabel)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
+
+            Divider().padding(.horizontal, 16).opacity(0.4)
+
+            VStack(spacing: 0) {
+                ForEach(Array(weekPrayerCompletions.enumerated()), id: \.offset) { index, item in
+                    PrayerCompletionBar(prayer: item.0, percent: item.1)
+                    if index < weekPrayerCompletions.count - 1 {
+                        Divider().padding(.leading, 100).opacity(0.3)
+                    }
+                }
+            }
+            .padding(.bottom, 8)
+        }
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
+    }
+
+    private var weekPrayerCompletions: [(Prayer, Double)] {
+        let pastCols  = columns.filter { !($0.fullDate > Calendar.current.startOfDay(for: Date())) }
+        let pastCount = Double(pastCols.count)
+        guard pastCount > 0 else { return prayers.map { ($0, 0.0) } }
+        return prayers.enumerated().map { i, prayer in
+            let prayed = Double(pastCols.filter { $0.cells[i]?.keepsStreak == true }.count)
+            return (prayer, prayed / pastCount)
+        }
+    }
+
     // MARK: Per-prayer completion bars
     private var prayerCompletionBars: some View {
         VStack(spacing: 0) {
@@ -271,7 +401,7 @@ struct TrackerView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("June 2026")
+                Text(monthLabel)
                     .font(.system(size: 12))
                     .foregroundStyle(.tertiary)
             }
@@ -295,21 +425,37 @@ struct TrackerView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
 
-    private let prayerCompletions: [(Prayer, Double)] = [
-        (.fajr, 0.82), (.dhuhr, 0.94), (.asr, 0.76), (.maghrib, 0.88), (.isha, 0.65)
-    ]
+    private var prayerCompletions: [(Prayer, Double)] {
+        let cols = monthlyColumns.filter { !Calendar.current.isDateInToday(
+            Calendar.current.date(from: DateComponents(
+                year: Calendar.current.component(.year, from: displayedMonth),
+                month: Calendar.current.component(.month, from: displayedMonth),
+                day: $0.date
+            )) ?? Date()
+        )}
+        let pastCount = Double(cols.count)
+        guard pastCount > 0 else { return prayers.map { ($0, 0.0) } }
+        return prayers.enumerated().map { i, prayer in
+            let prayed = Double(cols.filter { $0.cells[i]?.keepsStreak == true }.count)
+            return (prayer, prayed / pastCount)
+        }
+    }
 
     // MARK: Summary cards
     private var weekSummaryCards: some View {
-        HStack(spacing: 12) {
-            SummaryCard(icon: "flame.fill",           iconColor: AppColor.accentGold,
-                        label: "Current Streak",       value: "12 days")
-            SummaryCard(icon: "checkmark.circle.fill", iconColor: AppColor.accentTeal,
-                        label: "This Week",            value: "31/35")
+        let weekPrayed  = columns.reduce(0) { $0 + $1.cells.filter { $0?.keepsStreak == true }.count }
+        let weekTotal   = columns.filter { !$0.isToday }.count * prayers.count
+        let weekPct     = weekTotal > 0 ? Int(Double(weekPrayed) / Double(weekTotal) * 100) : 0
+
+        return HStack(spacing: 12) {
             SummaryCard(icon: "percent",               iconColor: AppColor.accentPurple,
-                        label: "Completion",           value: "88%")
+                        label: "Completion",           value: "\(weekPct)%")
+            SummaryCard(icon: "checkmark.circle.fill", iconColor: AppColor.accentTeal,
+                        label: "This Week",            value: "\(weekPrayed)/\(weekTotal)")
             SummaryCard(icon: "star.fill",             iconColor: AppColor.accentGold,
-                        label: "Best Streak",          value: "21 days")
+                        label: "Best Streak",          value: "\(trackerVM.getMaxStreak().days) days")
+            SummaryCard(icon: "flame.fill",            iconColor: AppColor.accentGold,
+                        label: "Current Streak",       value: "\(trackerVM.currentStreak) days")
         }
     }
 
@@ -345,11 +491,23 @@ struct TrackerView: View {
                         .frame(width: 85, alignment: .leading)
 
                         // Cells across all days
-                        ForEach(columns) { col in
-                            TrackerCellTile(
-                                status: col.cells[index],
-                                isToday: col.isToday
-                            )
+                        ForEach(Array(columns.enumerated()), id: \.element.id) { _, col in
+                            let cal          = Calendar.current
+                            let today        = cal.startOfDay(for: Date())
+                            let isDateFuture = col.fullDate > today
+                            let isPrayerFuture: Bool = col.isToday && {
+                                guard let t = prayerVM.todayEntries.first(where: { $0.prayer == prayer })?.date
+                                else { return true }
+                                return t > Date()
+                            }()
+                            let isFuture  = isDateFuture || isPrayerFuture
+                            let record    = (weekCache[col.fullDate] ?? []).first(where: { $0.prayer == prayer })
+                            let isCurrent = prayerVM.currentPrayer == prayer && col.isToday
+                            TappableTrackerCell(
+                                prayer: prayer, status: col.cells[index], record: record,
+                                date: col.fullDate, isToday: col.isToday,
+                                isFuture: isFuture, isCurrent: isCurrent
+                            ) { loadWeek(); loadMonth() }
                         }
                     }
                     .padding(.horizontal, 16)

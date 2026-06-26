@@ -83,12 +83,12 @@ extension Prayer {
     }
 }
 
-// MARK: - Date → Gregorian UTC DateComponents
+// MARK: - Date → Gregorian DateComponents
 
 extension Date {
-    var gregorianLocalComponents: DateComponents {
+    func gregorianComponents(in timezone: TimeZone) -> DateComponents {
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = .current
+        cal.timeZone = timezone
         return cal.dateComponents([.year, .month, .day], from: self)
     }
 }

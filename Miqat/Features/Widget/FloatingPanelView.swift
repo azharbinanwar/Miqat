@@ -5,9 +5,9 @@ import SwiftUI
 struct FloatingPanelView: View {
     let prayerVM: PrayerTimeViewModel
     var onOpenSettings: () -> Void = {}
-    @Environment(SettingsViewModel.self) private var settingsVM
-    @Environment(HijriCalendarViewModel.self) private var hijriVM
-    @State private var prayed = false
+    @Environment(SettingsViewModel.self)         private var settingsVM
+    @Environment(HijriCalendarViewModel.self)    private var hijriVM
+    @Environment(PrayerTrackerViewModel.self)    private var trackerVM
     @State private var showContextMenu = false
     @State private var locationVM = LocationViewModel.shared
     private let currentHour = Calendar.current.component(.hour, from: Date())
@@ -55,16 +55,9 @@ struct FloatingPanelView: View {
                     .foregroundStyle(.white.opacity(0.5))
             }
             Spacer()
-            Button {
-                withAnimation(.spring(duration: 0.25)) { prayed.toggle() }
-            } label: {
-                Image(systemName: prayed ? "checkmark.circle.fill" : "checkmark.circle")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(prayed ? timeAccent : .white)
-                    .frame(width: 32, height: 32)
-                    .background(prayed ? .white : .white.opacity(0.15), in: Circle())
+            if activePeriod.isPrayer {
+                IPrayedButton(prayer: activePeriod, date: Date(), compact: true)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
@@ -104,17 +97,31 @@ struct FloatingPanelView: View {
 
             Spacer()
 
-            HStack(spacing: 4) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(AppColor.softAmber)
-                Text("--")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white)
+            HStack(spacing: 10) {
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(AppColor.softAmber)
+                    Text("\(trackerVM.currentStreak)d")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.white.opacity(0.12), in: Capsule())
+
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(trackerVM.todayCount == 5 ? AppColor.softGreen : .white.opacity(0.6))
+                    Text("\(trackerVM.todayCount)/5")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.white.opacity(0.12), in: Capsule())
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.white.opacity(0.12), in: Capsule())
         }
         .padding(.horizontal, 16)
         .padding(.top, 18)
@@ -137,22 +144,10 @@ struct FloatingPanelView: View {
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.55))
 
-            Button {
-                withAnimation(.spring(duration: 0.25)) { prayed.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: prayed ? "checkmark.circle.fill" : "checkmark.circle")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(prayed ? "Prayed ✓" : "I Prayed")
-                        .font(.system(size: 13, weight: .semibold))
-                }
-                .foregroundStyle(prayed ? timeAccent : .white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 9)
-                .background(prayed ? .white : .white.opacity(0.15), in: Capsule())
+            if activePeriod.isPrayer {
+                IPrayedButton(prayer: activePeriod, date: Date())
+                    .padding(.top, 4)
             }
-            .buttonStyle(.plain)
-            .padding(.top, 4)
         }
         .padding(.vertical, 18)
     }
@@ -160,9 +155,13 @@ struct FloatingPanelView: View {
     // MARK: Prayer list — identical to popup
     private var prayerList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(prayerVM.entries.enumerated()), id: \.element.id) { index, entry in
-                PopoverPrayerRow(entry: entry, countdown: prayerVM.countdownText)
-                if index < prayerVM.entries.count - 1 {
+            ForEach(Array(prayerVM.displayEntries.enumerated()), id: \.element.id) { index, entry in
+                PopoverPrayerRow(
+                    entry: entry,
+                    countdown: prayerVM.countdownText,
+                    trackerStatus: trackerVM.records(for: prayerVM.displayDate).first(where: { $0.prayer == entry.prayer })?.status
+                )
+                if index < prayerVM.displayEntries.count - 1 {
                     Divider()
                         .padding(.leading, 46)
                         .opacity(0.08)

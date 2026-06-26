@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#3B0764"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+
+  <!-- Stars -->
+  <circle cx="180" cy="140" r="3" fill="white" opacity="0.4"/>
+  <circle cx="820" cy="100" r="2" fill="white" opacity="0.3"/>
+  <circle cx="880" cy="220" r="3" fill="white" opacity="0.35"/>
+  <circle cx="140" cy="300" r="2" fill="white" opacity="0.3"/>
+  <circle cx="760" cy="180" r="2" fill="white" opacity="0.25"/>
+  <circle cx="920" cy="340" r="2" fill="white" opacity="0.3"/>
+  <circle cx="100" cy="420" r="2" fill="white" opacity="0.2"/>
+
+  <!-- Ground platform -->
+  <rect x="152" y="820" width="720" height="44" rx="10" fill="white"/>
+
+  <!-- Left minaret body -->
+  <rect x="232" y="510" width="54" height="310" rx="4" fill="white"/>
+  <!-- Left minaret dome cap -->
+  <path d="M 218 512 Q 259 448 300 512 Z" fill="white"/>
+  <!-- Left minaret finial -->
+  <rect x="256" y="428" width="6" height="68" rx="3" fill="#D97706"/>
+  <circle cx="259" cy="422" r="13" fill="#D97706"/>
+
+  <!-- Right minaret body -->
+  <rect x="738" y="510" width="54" height="310" rx="4" fill="white"/>
+  <!-- Right minaret dome cap -->
+  <path d="M 724 512 Q 765 448 806 512 Z" fill="white"/>
+  <!-- Right minaret finial -->
+  <rect x="762" y="428" width="6" height="68" rx="3" fill="#D97706"/>
+  <circle cx="765" cy="422" r="13" fill="#D97706"/>
+
+  <!-- Left secondary dome -->
+  <path d="M 300 662 A 74 68 0 0 1 448 662 Z" fill="white"/>
+
+  <!-- Right secondary dome -->
+  <path d="M 576 662 A 74 68 0 0 1 724 662 Z" fill="white"/>
+
+  <!-- Main building body -->
+  <rect x="300" y="662" width="424" height="158" fill="white"/>
+
+  <!-- Main dome -->
+  <path d="M 302 662 A 210 202 0 0 1 722 662 Z" fill="white"/>
+
+  <!-- Entrance arch -->
+  <path d="M 458 820 L 458 734 Q 512 684 566 734 L 566 820 Z" fill="#0F172A" opacity="0.5"/>
+
+  <!-- Minaret windows -->
+  <ellipse cx="259" cy="572" rx="14" ry="18" fill="#0F172A" opacity="0.2"/>
+  <ellipse cx="259" cy="632" rx="14" ry="18" fill="#0F172A" opacity="0.2"/>
+  <ellipse cx="765" cy="572" rx="14" ry="18" fill="#0F172A" opacity="0.2"/>
+  <ellipse cx="765" cy="632" rx="14" ry="18" fill="#0F172A" opacity="0.2"/>
+
+  <!-- Crescent moon (gold) — sits at dome tip -->
+  <path d="M 533,396 A 40,40 0 1,1 533,464 A 34,34 0 1,0 533,396 Z" fill="#D97706"/>
+
+  <!-- Star (gold) -->
+  <polygon points="578,392 581.8,402.7 593.2,403.1 584.2,410 587.4,421 578,414.5 568.6,421 571.8,410 562.8,403.1 574.2,402.7" fill="#D97706"/>
+</svg>

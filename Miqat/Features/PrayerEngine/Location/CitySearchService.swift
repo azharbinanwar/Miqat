@@ -6,6 +6,7 @@ struct CityResult: Identifiable {
     let name       : String
     let city       : String
     let coordinate : CLLocationCoordinate2D
+    let timezone   : String
 }
 
 final class CitySearchService: ObservableObject {
@@ -18,10 +19,12 @@ final class CitySearchService: ObservableObject {
 
     private struct CityEntry {
         let name      : String
+        let ascii     : String
         let nameLower : String
         let lat       : Double
         let lng       : Double
         let country   : String
+        let timezone  : String
     }
 
     func search(query: String) {
@@ -54,7 +57,8 @@ final class CitySearchService: ObservableObject {
                 return CityResult(
                     name: e.name,
                     city: "\(e.name), \(country)",
-                    coordinate: CLLocationCoordinate2D(latitude: e.lat, longitude: e.lng)
+                    coordinate: CLLocationCoordinate2D(latitude: e.lat, longitude: e.lng),
+                    timezone: e.timezone
                 )
             }
         results     = Array(matches)
@@ -69,10 +73,14 @@ final class CitySearchService: ObservableObject {
             .split(separator: "\n", omittingEmptySubsequences: true)
             .compactMap { line -> CityEntry? in
                 let p = line.split(separator: "\t", omittingEmptySubsequences: false)
-                guard p.count >= 4, let lat = Double(p[1]), let lng = Double(p[2]) else { return nil }
-                let name = String(p[0])
-                return CityEntry(name: name, nameLower: name.lowercased(),
-                                 lat: lat, lng: lng, country: String(p[3]))
+                guard p.count >= 6, let lat = Double(p[2]), let lng = Double(p[3]) else { return nil }
+                let name  = String(p[0])
+                let ascii = String(p[1])
+                return CityEntry(name: name, ascii: ascii,
+                                 nameLower: ascii.lowercased(),
+                                 lat: lat, lng: lng,
+                                 country: String(p[4]),
+                                 timezone: String(p[5]))
             }
     }
 
