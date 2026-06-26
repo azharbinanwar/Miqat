@@ -8,7 +8,7 @@ enum AppColor {
     static let dhuhr   = Color(hex: "#38BDF8")  // bright sky blue — high noon
     static let asr     = Color(hex: "#F59E0B")  // golden amber — afternoon sun
     static let maghrib = Color(hex: "#F43F5E")  // deep rose-red — burning sunset
-    static let isha    = Color(hex: "#312E81")  // near-black indigo — full night
+    static let isha    = Color(hex: "#818CF8")  // soft indigo — visible on dark
 
     // MARK: - Gradient backgrounds
     static let deepNavy    = Color(hex: "#020617")  // near black

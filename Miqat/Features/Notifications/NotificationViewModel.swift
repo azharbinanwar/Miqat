@@ -39,11 +39,7 @@ final class NotificationViewModel {
     // MARK: Reschedule entry points
 
     func rescheduleAll() {
-        guard let loc = location, let s = calculationSettings else {
-            print("⚠️ rescheduleAll() skipped — location=\(location == nil ? "nil" : location!.label), settings=\(calculationSettings == nil ? "nil" : "ok")")
-            return
-        }
-        print("📋 rescheduleAll() called — loc: \(loc.label)")
+        guard let loc = location, let s = calculationSettings else { return }
         Task { await service.scheduleAll(vm: self, location: loc, settings: s) }
     }
 

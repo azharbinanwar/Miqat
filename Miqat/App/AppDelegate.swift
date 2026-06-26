@@ -85,7 +85,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // Always use saved location — never wait for live GPS
         let savedLocation = repo.getActiveLocation()
         let activeLocation = savedLocation ?? Location.defaultLocation
-        print("[AppDelegate] location: \(savedLocation != nil ? "saved=\(activeLocation.label)" : "nil — using default \(activeLocation.label)")")
         notificationVM.location = activeLocation
         notificationVM.calculationSettings = settingsVM.settings.prayerCalculationSettings
         notificationVM.rescheduleAll()
@@ -98,7 +97,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            print("💻 Mac woke — running scheduleIfNeeded")
             self.notificationVM.rescheduleIfNeeded()
             // Re-load prayer times → triggers onEntriesLoaded → fillGaps
             if let loc = ServiceLocator.shared.resolve(LocationRepository.self).getActiveLocation() {
@@ -367,6 +365,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         panel.isMovableByWindowBackground = true
         panel.contentView             = NSHostingView(rootView: FloatingPanelView(prayerVM: menuBarVM, onOpenSettings: { [weak self] in
             self?.showMainWindow(tab: .settings)
+        }, onOpenApp: { [weak self] in
+            self?.showMainWindow()
         }).environment(settingsVM).environment(themeVM).environment(trackerVM).environment(hijriVM).environment(menuBarVM))
 
         let defaults = UserDefaults.standard

@@ -58,9 +58,7 @@ struct PendingNotificationsDialog: View {
                     Button {
                         Task {
                             let fresh = await UNUserNotificationCenter.current().pendingNotificationRequests()
-                            print("🔍 Summary fetched \(fresh.count) pending requests")
                             let log = NotificationCounter.summary(vm: vm, pending: fresh)
-                            print(log)
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(log, forType: .string)
                             withAnimation { summaryCopied = true }
@@ -180,7 +178,6 @@ struct PendingNotificationsDialog: View {
     private func loadPending() async {
         loading = true
         let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
-        print("🔍 loadPending: \(requests.count) requests from system")
         let sorted = requests.sorted {
             triggerDate($0) ?? .distantFuture < triggerDate($1) ?? .distantFuture
         }

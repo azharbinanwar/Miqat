@@ -102,7 +102,6 @@ final class LocalPrayerTrackerRepository: PrayerTrackerRepository {
         let todayRecords = byDay[today] ?? []
         let todayHasMiss = todayRecords.contains { PrayerTrackerStatus(rawValue: $0.statusRaw) == .missed }
         if todayHasMiss {
-            print("[streak] current — today has missed, streak=0")
             return StreakResult(days: 0, from: today, to: today)
         }
         let todayPrayed = todayRecords.filter { r in
@@ -125,7 +124,6 @@ final class LocalPrayerTrackerRepository: PrayerTrackerRepository {
         }
 
         let streakFrom = cal.date(byAdding: .day, value: 1, to: day)!
-        print("[streak] current — days=\(streak)")
         return StreakResult(days: streak, from: streakFrom, to: today)
     }
 
@@ -164,7 +162,6 @@ final class LocalPrayerTrackerRepository: PrayerTrackerRepository {
             day = cal.date(byAdding: .day, value: 1, to: day)!
         }
 
-        print("[streak] max — maxDays=\(maxDays)")
         return StreakResult(days: maxDays, from: maxFrom, to: maxTo)
     }
 }

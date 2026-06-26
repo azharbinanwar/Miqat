@@ -158,15 +158,21 @@ struct PopoverView: View {
 
             Spacer()
 
-            Button { onOpenApp() } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .padding(7)
-                    .background(.white.opacity(0.1), in: Circle())
+            HStack(spacing: 8) {
+                if trackerVM.currentStreak > 0 {
+                    StreakPill(days: trackerVM.currentStreak)
+                }
+
+                Button { onOpenApp() } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding(7)
+                        .background(.white.opacity(0.1), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Open Miqat")
             }
-            .buttonStyle(.plain)
-            .help("Open Miqat")
         }
         .padding(.horizontal, 14)
         .padding(.top, 24)

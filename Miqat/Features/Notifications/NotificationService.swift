@@ -251,10 +251,7 @@ final class NotificationService {
         // processed by the notification daemon before any add() calls fire.
         let beforeCancel = await center.pendingNotificationRequests()
 
-        guard vm.allEnabled else {
-            print("⚠️ scheduleAll skipped — master toggle OFF")
-            return
-        }
+        guard vm.allEnabled else { return }
 
         // All prayer types run concurrently inside a TaskGroup.
         // Each type awaits its own add() calls sequentially — so Apple's
@@ -271,8 +268,7 @@ final class NotificationService {
         }
 
         // All adds have now completed (or errored). Check what Apple actually registered.
-        let after = await center.pendingNotificationRequests()
-        print("✅ scheduleAll() complete — Apple confirmed \(after.count) pending")
+        _ = await center.pendingNotificationRequests()
     }
 
     // MARK: - Schedule If Needed (gap fill — never cancels anything)
@@ -379,8 +375,6 @@ final class NotificationService {
             }
         }
 
-        let after = await center.pendingNotificationRequests()
-        print("✅ scheduleIfNeeded — after: \(after.count) pending | added: \(added) | past/skipped: \(skipped)")
     }
 
     // MARK: - Helpers
@@ -417,11 +411,6 @@ final class NotificationService {
         let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
 
-        do {
-            try await center.add(request)
-        } catch {
-            let ns = error as NSError
-            print("❌ [\(id)] Apple rejected — \(ns.localizedDescription) (domain: \(ns.domain) code: \(ns.code))")
-        }
+        try? await center.add(request)
     }
 }

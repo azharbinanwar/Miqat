@@ -448,13 +448,13 @@ struct TrackerView: View {
         let weekPct     = weekTotal > 0 ? Int(Double(weekPrayed) / Double(weekTotal) * 100) : 0
 
         return HStack(spacing: 12) {
-            SummaryCard(icon: "percent",               iconColor: AppColor.accentPurple,
+            InfoCard(icon: "percent",               iconColor: AppColor.accentPurple,
                         label: "Completion",           value: "\(weekPct)%")
-            SummaryCard(icon: "checkmark.circle.fill", iconColor: AppColor.accentTeal,
+            InfoCard(icon: "checkmark.circle.fill", iconColor: AppColor.accentTeal,
                         label: "This Week",            value: "\(weekPrayed)/\(weekTotal)")
-            SummaryCard(icon: "star.fill",             iconColor: AppColor.accentGold,
+            InfoCard(icon: "star.fill",             iconColor: AppColor.accentGold,
                         label: "Best Streak",          value: "\(trackerVM.getMaxStreak().days) days")
-            SummaryCard(icon: "flame.fill",            iconColor: AppColor.accentGold,
+            InfoCard(icon: "flame.fill",            iconColor: AppColor.accentGold,
                         label: "Current Streak",       value: "\(trackerVM.currentStreak) days")
         }
     }
@@ -565,34 +565,5 @@ struct PrayerCompletionBar: View {
     private var barColor: Color {
         percent >= 0.8 ? AppColor.accentTeal :
         percent >= 0.5 ? AppColor.accentGold : AppColor.alert
-    }
-}
-
-// MARK: - Summary Card (generic)
-
-struct SummaryCard: View {
-    let icon: String
-    let iconColor: Color
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(iconColor)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 20, weight: .bold))
-                Text(label)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
 }

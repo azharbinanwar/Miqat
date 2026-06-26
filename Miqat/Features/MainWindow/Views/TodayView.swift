@@ -107,47 +107,16 @@ struct QuickStatsColumn: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            StatCard(icon: "flame.fill",            iconColor: Prayer.sunrise.color,
-                     label: "Streak",               value: "\(trackerVM.currentStreak) days")
-            StatCard(icon: "checkmark.circle.fill", iconColor: Prayer.fajr.color,
-                     label: "Today",                value: "\(trackerVM.todayCount)/5 prayed")
-            StatCard(icon: "sunrise.fill",          iconColor: Prayer.sunrise.color,
-                     label: "Sunrise",              value: sunriseTime)
-            StatCard(icon: "sunset.fill",           iconColor: Prayer.maghrib.color,
-                     label: "Sunset",               value: maghribTime)
+            InfoCard(icon: "flame.fill",            iconColor: Prayer.sunrise.color,
+                     label: "Streak",               value: "\(trackerVM.currentStreak) days", style: .row)
+            InfoCard(icon: "checkmark.circle.fill", iconColor: Prayer.fajr.color,
+                     label: "Today",                value: "\(trackerVM.todayCount)/5 prayed", style: .row)
+            InfoCard(icon: "sunrise.fill",          iconColor: Prayer.sunrise.color,
+                     label: "Sunrise",              value: sunriseTime, style: .row)
+            InfoCard(icon: "sunset.fill",           iconColor: Prayer.maghrib.color,
+                     label: "Sunset",               value: maghribTime, style: .row)
         }
         .frame(width: 160)
-    }
-}
-
-struct StatCard: View {
-    let icon: String
-    let iconColor: Color
-    let label: String
-    let value: String
-    var valueColor: Color = .primary
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 15))
-                .foregroundStyle(iconColor)
-                .frame(width: 22)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(valueColor)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.06), lineWidth: 1))
     }
 }
 

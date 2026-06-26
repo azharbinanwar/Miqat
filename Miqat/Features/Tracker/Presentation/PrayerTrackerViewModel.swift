@@ -54,17 +54,10 @@ final class PrayerTrackerViewModel {
                 : cal.startOfDay(for: now)
         }
 
-        let fmt = DateFormatter(); fmt.dateFormat = "MMM d HH:mm"
-
         let allEntries = engine.prayers(from: fromDate, to: now, location: location, settings: settings)
             .filter { lastRecordedTime == nil || $0.1 > lastRecordedTime! }
 
-        guard let activeIdx = allEntries.lastIndex(where: { $0.1 <= now }) else {
-            print("[seedGaps] nothing to seed — no active entry ≤ now (\(fmt.string(from: now)))")
-            return
-        }
-        let active = allEntries[activeIdx]
-        print("[seedGaps] active=\(active.0) @ \(fmt.string(from: active.1)), seeding \(activeIdx) entries")
+        guard let activeIdx = allEntries.lastIndex(where: { $0.1 <= now }) else { return }
         let toSeed = allEntries.prefix(upTo: activeIdx)
 
         let existing = Set(allRecords.map { "\($0.prayer)_\(cal.startOfDay(for: $0.prayerTime).timeIntervalSince1970)" })

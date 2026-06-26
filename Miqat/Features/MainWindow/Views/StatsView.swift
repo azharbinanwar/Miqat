@@ -202,13 +202,13 @@ struct StatsView: View {
         let pct      = total > 0 ? Int(Double(prayed) / Double(total) * 100) : 0
 
         return HStack(spacing: 12) {
-            SummaryCard(icon: "percent",               iconColor: AppColor.accentPurple,
+            InfoCard(icon: "percent",               iconColor: AppColor.accentPurple,
                         label: "Completion",           value: "\(pct)%")
-            SummaryCard(icon: "checkmark.circle.fill", iconColor: AppColor.accentTeal,
+            InfoCard(icon: "checkmark.circle.fill", iconColor: AppColor.accentTeal,
                         label: periodLabel,            value: "\(prayed)/\(total)")
-            SummaryCard(icon: "star.fill",             iconColor: AppColor.accentGold,
+            InfoCard(icon: "star.fill",             iconColor: AppColor.accentGold,
                         label: "Best Streak",          value: "\(maxS.days) days")
-            SummaryCard(icon: "flame.fill",            iconColor: AppColor.accentGold,
+            InfoCard(icon: "flame.fill",            iconColor: AppColor.accentGold,
                         label: "Current Streak",       value: "\(current.days) days")
         }
     }

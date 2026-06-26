@@ -5,6 +5,7 @@ import SwiftUI
 struct FloatingPanelView: View {
     let prayerVM: PrayerTimeViewModel
     var onOpenSettings: () -> Void = {}
+    var onOpenApp    : () -> Void = {}
     @Environment(SettingsViewModel.self)         private var settingsVM
     @Environment(HijriCalendarViewModel.self)    private var hijriVM
     @Environment(PrayerTrackerViewModel.self)    private var trackerVM
@@ -66,10 +67,41 @@ struct FloatingPanelView: View {
     // MARK: Medium layout (320 × 390) — hero + list
     private var mediumLayout: some View {
         VStack(spacing: 0) {
+            compactHeader
+            Divider().opacity(0.15).padding(.horizontal, 16)
             heroSection
             Divider().opacity(0.15).padding(.horizontal, 16)
             prayerList
         }
+    }
+
+    // MARK: Compact header — medium only
+    private var compactHeader: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(hijriVM.today.formatted)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.5))
+                Text(locationVM.activeCityName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            Spacer()
+            HStack(spacing: 8) {
+                StreakPill(days: trackerVM.currentStreak)
+                Button { onOpenApp() } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding(7)
+                        .background(.white.opacity(0.1), in: Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
     }
 
     // MARK: Large layout (320 × 510) — header + hero + list
@@ -97,30 +129,16 @@ struct FloatingPanelView: View {
 
             Spacer()
 
-            HStack(spacing: 10) {
-                HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(AppColor.softAmber)
-                    Text("\(trackerVM.currentStreak)d")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
+            HStack(spacing: 8) {
+                StreakPill(days: trackerVM.currentStreak)
+                Button { onOpenApp() } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding(7)
+                        .background(.white.opacity(0.1), in: Circle())
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.white.opacity(0.12), in: Capsule())
-
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(trackerVM.todayCount == 5 ? AppColor.softGreen : .white.opacity(0.6))
-                    Text("\(trackerVM.todayCount)/5")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.white.opacity(0.12), in: Capsule())
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)
