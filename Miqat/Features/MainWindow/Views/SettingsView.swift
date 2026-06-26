@@ -489,37 +489,15 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Miqat")
                         .font(.system(size: 13, weight: .medium))
-                    Text("Version 1.0.0 (1)")
+                    Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
-
-                Text("Up to date")
-                    .font(.system(size: 11))
-                    .foregroundStyle(AppColor.accentTeal)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 11)
-
-            Divider().padding(.leading, 58).opacity(0.3)
-
-            SettingsActionRow(
-                icon: "star.fill",
-                iconColor: AppColor.accentGold,
-                title: "Rate on App Store",
-                subtitle: "Enjoying Miqat? Leave a review"
-            )
-
-            Divider().padding(.leading, 58).opacity(0.3)
-
-            SettingsActionRow(
-                icon: "envelope.fill",
-                iconColor: AppColor.accentBlue,
-                title: "Send feedback",
-                subtitle: "Report a bug or suggest a feature"
-            )
         }
     }
 
