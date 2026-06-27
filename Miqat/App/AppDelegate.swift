@@ -59,7 +59,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             }
         }
 
-        UserDefaults.standard.set(false, forKey: Keys.Defaults.hasCompletedOnboarding)
         if UserDefaults.standard.bool(forKey: Keys.Defaults.hasCompletedOnboarding) {
             if settingsVM.settings.openWindowOnLaunch { showMainWindow() }
             showWidget()

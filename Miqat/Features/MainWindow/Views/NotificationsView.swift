@@ -409,8 +409,8 @@ struct NotificationsView: View {
 
                     Group {
                         prayerAlertsCard
-                        actionsCard
-                        generalCard
+                        // actionsCard — not yet implemented, hidden until ready
+                        // generalCard — DND/Focus not yet implemented, hidden until ready
                         surahMulkCard
                         surahKahfCard
                         testNotificationCard
