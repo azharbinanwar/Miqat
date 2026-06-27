@@ -9,7 +9,7 @@ struct IPrayedButton: View {
     @Environment(PrayerTimeViewModel.self)    private var prayerVM
     @State private var showPicker = false
 
-    private var record        : PrayerRecord? { trackerVM.records(for: date).first(where: { $0.prayer == prayer }) }
+    private var record        : PrayerRecord? { trackerVM.records(for: prayerVM.displayDate).first(where: { $0.prayer == prayer }) }
     private var isCurrent     : Bool          { prayerVM.currentPrayer == prayer }
     private var prayed        : Bool          { record?.status.keepsStreak == true }
     private var accent        : Color         { prayer.color(for: date) }
