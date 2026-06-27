@@ -23,7 +23,7 @@ struct AppSettings: Codable, Equatable {
     var redThreshold: Int = 20
 
     // MARK: - Startup
-    var launchAtLogin: Bool = true
+    var launchAtLogin: Bool = false
     var floatingPanelMode: FloatingPanelMode = .always
     var floatingPanelSize: FloatingPanelSize = .medium
     var openWindowOnLaunch: Bool = true

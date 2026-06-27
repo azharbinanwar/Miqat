@@ -59,6 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             }
         }
 
+        UserDefaults.standard.set(false, forKey: Keys.Defaults.hasCompletedOnboarding)
         if UserDefaults.standard.bool(forKey: Keys.Defaults.hasCompletedOnboarding) {
             if settingsVM.settings.openWindowOnLaunch { showMainWindow() }
             showWidget()
@@ -139,9 +140,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
         // Icon
         if s.menuShowIcon,
-           let img = NSImage(systemSymbolName: "moon.stars.fill", accessibilityDescription: nil) {
+           let img = NSImage(named: "MiqatMenuLogo") {
+            img.isTemplate = true
+            let size: CGFloat = 16
             let attachment = NSTextAttachment()
             attachment.image = img
+            attachment.bounds = CGRect(x: 0, y: -3, width: size * 0.85, height: size * 0.85)
             attrStr.append(NSAttributedString(attachment: attachment))
             attrStr.append(NSAttributedString(string: " "))
         }
@@ -405,7 +409,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed        = false
         window.contentViewController = NSHostingController(
-            rootView: OnboardingView {
+            rootView: OnboardingView { didEnableLogin in
                 DispatchQueue.main.async {
                     LocationViewModel.shared.cancelFetch()
                     UserDefaults.standard.set(true, forKey: Keys.Defaults.hasCompletedOnboarding)
@@ -413,6 +417,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
                        let madhab = Madhab(rawValue: raw) {
                         self.settingsVM.update { $0.madhab = madhab }
                     }
+                    self.settingsVM.update { $0.launchAtLogin = didEnableLogin }
                     self.onboardingWindow?.animationBehavior = .none
                     self.onboardingWindow?.close()
                     // Nil AFTER main window is shown — keeps our strong reference alive

@@ -3,7 +3,7 @@ import SwiftUI
 struct WelcomePage: View {
     var body: some View {
         VStack(spacing: 0) {
-            OnboardingIcon(systemName: "moon.stars.fill")
+            OnboardingIcon(assetName: "MiqatLogo")
                 .padding(.top, 52)
 
             Text("Miqat")

@@ -94,9 +94,11 @@ struct SidebarView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(AppColor.accentTeal)
                     .frame(width: 36, height: 36)
-                Image(systemName: "building.columns.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                Image("MiqatLogo")
+                    .resizable()
+                    .renderingMode(.template)
                     .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("Miqat")

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct OnboardingView: View {
     @State private var vm = OnboardingViewModel()
-    var onComplete: () -> Void
+    var onComplete: (Bool) -> Void
 
     var body: some View {
         ZStack {
@@ -64,7 +64,7 @@ struct OnboardingView: View {
                 .buttonStyle(.plain)
             }
             if vm.isLoginPage {
-                Button { onComplete() } label: {
+                Button { onComplete(false) } label: {
                     Text("Not Now")
                         .font(.system(size: 12))
                         .foregroundStyle(.white.opacity(0.4))
@@ -76,7 +76,7 @@ struct OnboardingView: View {
                 Task {
                     if vm.isLoginPage {
                         await vm.requestLoginItem()
-                        onComplete()
+                        onComplete(vm.didEnableLoginItem)
                     } else {
                         await vm.advance()
                     }

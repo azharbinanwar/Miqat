@@ -323,14 +323,16 @@ struct SettingsView: View {
 
             Divider().padding(.horizontal, 16).opacity(0.4)
 
-            // Preview bar
+            // Preview bar — dark background simulates real menu bar
             HStack {
                 Spacer()
                 HStack(spacing: 6) {
                     if vm.settings.menuShowIcon {
-                        Image(systemName: "moon.stars.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
+                        Image("MiqatMenuLogo")
+                            .resizable()
+                            .renderingMode(.template)
+                            .foregroundStyle(.white)
+                            .frame(width: 14, height: 14)
                     }
                     if vm.settings.menuShowPrayerName {
                         Text(vm.settings.menuDisplay == .countdown ? previewCountdownText : previewTimeText)
@@ -342,8 +344,7 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color(NSColor.controlBackgroundColor), in: RoundedRectangle(cornerRadius: 7))
-                .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+                .background(Color(NSColor.darkGray).opacity(0.85), in: RoundedRectangle(cornerRadius: 7))
                 Spacer()
             }
             .padding(.vertical, 12)
@@ -480,10 +481,12 @@ struct SettingsView: View {
     private var aboutCard: some View {
         settingsCard(title: "About", icon: "info.circle.fill", iconColor: .secondary) {
             HStack(spacing: 14) {
-                Image(systemName: "app.fill")
-                    .font(.system(size: 14))
+                Image("MiqatLogo")
+                    .resizable()
+                    .renderingMode(.template)
                     .foregroundStyle(AppColor.accentTeal)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 18, height: 18)
+                    .padding(5)
                     .background(AppColor.accentTeal.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
 
                 VStack(alignment: .leading, spacing: 2) {

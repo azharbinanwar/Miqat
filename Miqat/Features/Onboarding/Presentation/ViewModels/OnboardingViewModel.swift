@@ -95,10 +95,13 @@ final class OnboardingViewModel {
         }
     }
 
+    private(set) var didEnableLoginItem = false
+
     func requestLoginItem() async {
         do {
             try SMAppService.mainApp.register()
             loginItemRequested = true
+            didEnableLoginItem = true
             try? await Task.sleep(for: .milliseconds(400))
         } catch {
             loginItemNeedsApproval = true

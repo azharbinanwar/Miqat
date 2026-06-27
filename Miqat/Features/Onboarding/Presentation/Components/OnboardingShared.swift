@@ -1,16 +1,25 @@
 import SwiftUI
 
 struct OnboardingIcon: View {
-    let systemName: String
+    var systemName: String = ""
+    var assetName : String = ""
 
     var body: some View {
         ZStack {
             Circle().fill(.white.opacity(0.12)).frame(width: 96, height: 96)
             Circle().fill(.white.opacity(0.08)).frame(width: 76, height: 76)
-            Image(systemName: systemName)
-                .font(.system(size: 38))
-                .foregroundStyle(.white)
-                .symbolRenderingMode(.hierarchical)
+            if !assetName.isEmpty {
+                Image(assetName)
+                    .resizable()
+                    .renderingMode(.template)
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+            } else {
+                Image(systemName: systemName)
+                    .font(.system(size: 38))
+                    .foregroundStyle(.white)
+                    .symbolRenderingMode(.hierarchical)
+            }
         }
     }
 }
