@@ -57,16 +57,34 @@ final class PrayerTrackerViewModel {
         let allEntries = engine.prayers(from: fromDate, to: now, location: location, settings: settings)
             .filter { lastRecordedTime == nil || $0.1 > lastRecordedTime! }
 
-        guard let activeIdx = allEntries.lastIndex(where: { $0.1 <= now }) else { return }
+        guard let activeIdx = allEntries.lastIndex(where: { $0.1 <= now }) else {
+            print("[seedGaps] no active prayer found — nothing to seed")
+            return
+        }
         let toSeed = allEntries.prefix(upTo: activeIdx)
 
         let existing = Set(allRecords.map { "\($0.prayer)_\(cal.startOfDay(for: $0.prayerTime).timeIntervalSince1970)" })
 
+        print("[seedGaps] fromDate=\(fromDate) lastRecordedTime=\(String(describing: lastRecordedTime))")
+        print("[seedGaps] allEntries count=\(allEntries.count) toSeed count=\(toSeed.count) existing count=\(existing.count)")
+        print("[seedGaps] existing keys: \(existing.sorted())")
+
+        var seen     = existing // grows as we insert, prevents same-run duplicates
+        var inserted = 0
+        var skipped  = 0
         for (prayer, pTime) in toSeed where prayer.isPrayer {
             let key = "\(prayer)_\(cal.startOfDay(for: pTime).timeIntervalSince1970)"
-            guard !existing.contains(key) else { continue }
-            try? repo.save(PrayerRecord(prayer: prayer, prayerTime: pTime, status: .missed))
+            if seen.contains(key) {
+                print("[seedGaps] SKIP \(prayer) \(pTime) — already exists")
+                skipped += 1
+            } else {
+                print("[seedGaps] INSERT \(prayer) \(pTime)")
+                try? repo.save(PrayerRecord(prayer: prayer, prayerTime: pTime, status: .missed))
+                seen.insert(key) // prevent duplicate in same run
+                inserted += 1
+            }
         }
+        print("[seedGaps] done — inserted=\(inserted) skipped=\(skipped)")
 
         reload()
     }
@@ -101,6 +119,13 @@ final class PrayerTrackerViewModel {
     // Load from DB once (launch or day change), then memory is source of truth
     func reload() {
         todayRecords  = (try? repo.records(for: Date())) ?? []
+        let cal = Calendar.current
+        let weekStart = cal.date(byAdding: .day, value: -6, to: cal.startOfDay(for: Date()))!
+        let weekAll   = (try? repo.records(from: weekStart, to: Date())) ?? []
+        print("[reload] todayRecords=\(todayRecords.count) weekRecords=\(weekAll.count)")
+        for r in weekAll {
+            print("[reload] \(r.prayer) \(r.prayerTime) \(r.status)")
+        }
         recomputeStats()
     }
 
